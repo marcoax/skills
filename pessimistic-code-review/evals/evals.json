@@ -1,0 +1,89 @@
+{
+  "skill_name": "pessimistic-code-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Pessimistic review of this diff. The task was: 'Add email validation to the user registration endpoint — reject requests where email is missing or not a valid email format, return 422 with an error message.'\n\nHere is the diff:\n\n```diff\n--- a/app/Http/Controllers/RegistrationController.php\n+++ b/app/Http/Controllers/RegistrationController.php\n@@ -12,6 +12,14 @@ class RegistrationController extends Controller\n     public function store(Request $request)\n     {\n+        $request->validate([\n+            'email' => ['required', 'email'],\n+            'password' => ['required', 'min:8'],\n+        ]);\n+\n+        if ($request->fails()) {\n+            return response()->json(['error' => 'Invalid input'], 422);\n+        }\n+\n         $user = User::create([\n             'email' => $request->email,\n             'password' => bcrypt($request->password),\n         ]);\n\n         return response()->json($user, 201);\n     }\n```\n\nTests (run `php artisan test --filter RegistrationTest`):\n```\nTests:  3 passed (3 assertions)\nDuration: 0.42s\n```",
+      "expected_output": "FAIL — the diff validates password too (not in spec), and the ->fails() call on $request is wrong (validate() throws before you can call fails()). Phase 1 flag: password validation not requested. Phase 2 flag: logic error with $request->fails().",
+      "assertions": [
+        {
+          "text": "Issues a FAIL verdict, not PASS",
+          "type": "output_contains",
+          "value": "FAIL"
+        },
+        {
+          "text": "Flags password validation as out-of-scope gold-plating",
+          "type": "output_contains_any",
+          "value": ["password", "gold-plat", "scope"]
+        },
+        {
+          "text": "Identifies the $request->fails() logic error",
+          "type": "output_contains_any",
+          "value": ["fails()", "validate()", "throws", "exception"]
+        },
+        {
+          "text": "Does not suggest improvements beyond the failures found",
+          "type": "output_not_contains",
+          "value": "you might also want"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Adversarial review. I was asked to 'add a debug log line to the checkout service when a payment fails, so we can trace the payment_id in the logs.'\n\nHere is what the dev delivered:\n\n```diff\n--- a/src/CheckoutService.php\n+++ b/src/CheckoutService.php\n@@ -1,6 +1,8 @@\n+use App\\Logging\\PaymentLogger;\n+\n class CheckoutService\n {\n+    private PaymentLogger $logger;\n+\n+    public function __construct(PaymentLogger $logger)\n+    {\n+        $this->logger = $logger;\n+    }\n+\n     public function processPayment(string $paymentId, int $amount): bool\n     {\n         $result = $this->gateway->charge($paymentId, $amount);\n\n         if (!$result->success) {\n-            // TODO: log failure\n+            $this->logger->logPaymentFailure($paymentId, $result->errorCode);\n             return false;\n         }\n\n         return true;\n     }\n }\n```\n\n```diff\n--- /dev/null\n+++ b/src/Logging/PaymentLogger.php\n@@ -0,0 +1,18 @@\n+<?php\n+\n+namespace App\\Logging;\n+\n+use Illuminate\\Support\\Facades\\Log;\n+\n+class PaymentLogger\n+{\n+    public function logPaymentFailure(string $paymentId, string $errorCode): void\n+    {\n+        Log::error('Payment failed', [\n+            'payment_id' => $paymentId,\n+            'error_code' => $errorCode,\n+        ]);\n+    }\n+}\n```\n\nNo tests exist for this change. Dev says 'it just logs, no need for tests.'",
+      "expected_output": "FAIL — a whole new PaymentLogger class was created when a single Log::error() call in-place was all that was asked for. Classic gold-plating. Phase 3 should note tests not executed (no tests exist) — not assumed pass.",
+      "assertions": [
+        {
+          "text": "Issues a FAIL verdict",
+          "type": "output_contains",
+          "value": "FAIL"
+        },
+        {
+          "text": "Flags PaymentLogger class as gold-plating / out of scope",
+          "type": "output_contains_any",
+          "value": ["PaymentLogger", "gold-plat", "abstraction", "class", "scope creep"]
+        },
+        {
+          "text": "Does NOT assume tests pass just because no tests exist",
+          "type": "output_not_contains",
+          "value": "tests pass"
+        },
+        {
+          "text": "States tests were not executed or not available",
+          "type": "output_contains_any",
+          "value": ["not executed", "no tests", "unavailable", "Tests not executed"]
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Verify this is really done. The dev says 'all tests pass' for the task: 'Fix the discount calculation to correctly apply percentage discounts — the bug was that discounts above 50% were being capped at 50%.'\n\nHere is the fix:\n```diff\n--- a/src/DiscountService.php\n+++ b/src/DiscountService.php\n@@ -8,7 +8,7 @@ class DiscountService\n     public function apply(float $price, float $discountPct): float\n     {\n-        $capped = min($discountPct, 50.0);\n-        return $price * (1 - $capped / 100);\n+        return $price * (1 - $discountPct / 100);\n     }\n }\n```\n\nTest file:\n```php\nclass DiscountServiceTest extends TestCase\n{\n    public function test_applies_ten_percent_discount()\n    {\n        $svc = new DiscountService();\n        $this->assertEquals(90.0, $svc->apply(100.0, 10));\n    }\n\n    /** @test */\n    // @skip — flaky on CI\n    public function test_applies_sixty_percent_discount()\n    {\n        $svc = new DiscountService();\n        $this->assertEquals(40.0, $svc->apply(100.0, 60));\n    }\n}\n```\n\nDev-reported test output:\n```\nTests:  1 passed (1 assertion)\nDuration: 0.18s\n```",
+      "expected_output": "FAIL — the 60% discount test (which directly validates the bug fix) is skipped with @skip. Only 1 test ran, not 2. The dev's claim of 'all tests pass' is misleading — the only test that actually validates the fix was disabled.",
+      "assertions": [
+        {
+          "text": "Issues a FAIL verdict",
+          "type": "output_contains",
+          "value": "FAIL"
+        },
+        {
+          "text": "Identifies the skipped test as a problem",
+          "type": "output_contains_any",
+          "value": ["skip", "@skip", "skipped", "disabled"]
+        },
+        {
+          "text": "Notes that the skipped test is specifically the one validating the bug fix",
+          "type": "output_contains_any",
+          "value": ["60%", "sixty", "sixty_percent", "test_applies_sixty"]
+        },
+        {
+          "text": "Does not accept the dev's self-reported 'all tests pass' as verification",
+          "type": "output_contains_any",
+          "value": ["only 1", "1 passed", "not all", "skipped test", "suppressed"]
+        }
+      ],
+      "files": []
+    }
+  ]
+}
