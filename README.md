@@ -38,11 +38,12 @@ Useful notes:
 
 ```text
 skills/   main skills collection
-cli/      dedicated Node.js CLI for the repository
+.claude/  Claude-specific repository metadata
+README.md repository overview and installation notes
 REPORT.md internal supporting documentation
 ```
 
-The `cli/` directory is not required to install skills with `npx skills@latest`: the official tool reads the GitHub repository directly and discovers the skills available under `skills/`.
+The official `skills` CLI reads the GitHub repository directly and discovers the skills available under `skills/`, so no extra local setup is required for installation.
 
 ## Available skills
 
@@ -54,17 +55,13 @@ The `cli/` directory is not required to install skills with `npx skills@latest`:
 | `code-review` | `skills/code-review` | Runs multi-scope code review in plan mode for files, branches, commits, or uncommitted changes. |
 | `current-file-review` | `skills/current-file-review` | Reviews changes in the current file against project guidelines and best practices. |
 | `design-an-interface` | `skills/design-an-interface` | Produces multiple radically different interface designs for the same module and compares tradeoffs. |
-| `get-api-docs` | `skills/get-api-docs` | Fetches up-to-date documentation for third-party libraries, SDKs, or APIs before implementation. |
 | `grill-me` | `skills/grill-me` | Interviews the user aggressively to stress-test plans, designs, and technical decisions. |
 | `laracms-code-review` | `skills/laracms-code-review` | Code review skill focused on LaraCMS/Laravel projects and admin architecture guidelines. |
-| `optimize-prompt` | `skills/optimize-prompt` | Rewrites a prompt to make it clearer and more effective before execution. |
+| `pessimistic-code-review` | `skills/pessimistic-code-review` | Runs adversarial code review using Independent Adversarial Verification (IAV) and returns an evidence-based PASS/FAIL verdict. |
 | `php-tdd-workflow` | `skills/php-tdd-workflow` | Guided PHP/Laravel implementation workflow with task breakdown, TDD, verification, and progress tracking. |
-| `planning-with-files` | `skills/planning-with-files` | Implements file-based planning with artifacts such as `task_plan.md`, `progress.md`, and `findings.md`. |
 | `prd-to-issues` | `skills/prd-to-issues` | Breaks a PRD into small, independently actionable GitHub issues using vertical slices. |
-| `skill-optimizer` | `skills/skill-optimizer` | Guides a structured 5-step diagnostic loop to improve an existing skill. |
 | `task-spec-creator` | `skills/task-spec-creator` | Creates a technical task specification markdown file through a structured developer interview. |
 | `tdd` | `skills/tdd` | Applies a red-green-refactor workflow with emphasis on behavior-focused tests and vertical slices. |
-| `technical-debt-manager-php-laravel` | `skills/technical-debt-manager-php-laravel` | Analyzes technical debt and builds refactoring roadmaps for PHP/Laravel codebases. |
 | `write-a-prd` | `skills/write-a-prd` | Builds a PRD through user interview, codebase exploration, and module definition. |
 
 ## Compatibility notes
@@ -72,7 +69,7 @@ The `cli/` directory is not required to install skills with `npx skills@latest`:
 Not every skill is fully generic:
 
 - `blazor-localization` assumes a Blazor workflow with RESX files.
-- `laracms-code-review` and `technical-debt-manager-php-laravel` are designed for Laravel/PHP contexts.
+- `laracms-code-review` is designed for Laravel/PHP contexts.
 - `php-tdd-workflow` is strongly oriented toward PHP/Laravel implementation flows.
 - some skills reference external tools or project conventions, so reading the related `SKILL.md` first is recommended before using them in a different environment.
 
