@@ -1,0 +1,119 @@
+{
+  "skill_name": "skill-optimizer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Ottimizza la mia skill code-review, non sta producendo feedback utili. Ogni volta che la uso mi dà commenti troppo generici tipo 'il codice potrebbe essere migliorato' senza dirmi esattamente dove o come.",
+      "expected_output": "Claude starts in Italian, discovers the code-review skill, summarizes what it does, then begins Step 1 (FIND WHY YOUR PROMPTS FAIL) with the correct banner format. Pauses after Step 1 and asks user whether to continue (C), skip (S), or terminate (T). No hardcoded Cowork paths appear.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "1a",
+          "text": "Response starts in Italian (first sentence is in Italian)",
+          "type": "content"
+        },
+        {
+          "id": "1b",
+          "text": "Step 0 discovers the code-review skill without producing a path-not-found error",
+          "type": "content"
+        },
+        {
+          "id": "1c",
+          "text": "Skill is summarized before any step begins",
+          "type": "content"
+        },
+        {
+          "id": "1d",
+          "text": "Step 1 banner appears with text containing 'STEP 1' and 'FIND WHY YOUR PROMPTS FAIL'",
+          "type": "content"
+        },
+        {
+          "id": "1e",
+          "text": "At least 3 distinct failure patterns are identified for the code-review skill",
+          "type": "content"
+        },
+        {
+          "id": "1f",
+          "text": "Pause prompt appears with options C (Continua), S (Salta), T (Termina)",
+          "type": "content"
+        },
+        {
+          "id": "1g",
+          "text": "No path containing 'tender-keen-ramanujan' or similar hardcoded session ID appears in output",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Can you optimize my log-analyzer skill? It keeps missing errors in the log file when there are more than 50 lines. Here's the SKILL.md content:\n\n---\nname: log-analyzer\ndescription: Analyze Symfony app.ERROR log files\n---\n\n# Log Analyzer\nAnalyze the provided log file and produce a report.\n",
+      "expected_output": "Claude accepts the pasted SKILL.md, does not try to run ls to find the skill (since it was provided inline), summarizes the skill, then executes Step 1 with the banner. Pauses for user input with C/S/T prompt in Italian.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "2a",
+          "text": "Claude uses the pasted SKILL.md content directly without attempting to run ls or searching for the skill on disk",
+          "type": "content"
+        },
+        {
+          "id": "2b",
+          "text": "Response starts in Italian despite the English-language trigger",
+          "type": "content"
+        },
+        {
+          "id": "2c",
+          "text": "Step 1 banner appears with text containing 'STEP 1' and 'FIND WHY YOUR PROMPTS FAIL'",
+          "type": "content"
+        },
+        {
+          "id": "2d",
+          "text": "The '50 lines' problem is mentioned or incorporated into the failure pattern analysis",
+          "type": "content"
+        },
+        {
+          "id": "2e",
+          "text": "Pause prompt appears with C/S/T options after Step 1",
+          "type": "content"
+        },
+        {
+          "id": "2f",
+          "text": "No hardcoded environment paths (Cowork session paths) appear in output",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "voglio ottimizzare /mqtt-decode. il problema è che si attiva male: a volte quando incollo un hex payload non parte la skill e devo richiamarla manualmente. come posso sistemarlo?",
+      "expected_output": "Claude identifies mqtt-decode skill, acknowledges the triggering issue as a relevant optimization target, executes Step 1, and pauses with C/S/T in Italian.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "3a",
+          "text": "Claude correctly identifies the target skill as 'mqtt-decode' (the /prefix does not confuse it)",
+          "type": "content"
+        },
+        {
+          "id": "3b",
+          "text": "The triggering / description issue is acknowledged as a relevant failure mode (not ignored)",
+          "type": "content"
+        },
+        {
+          "id": "3c",
+          "text": "Step 1 banner appears with text containing 'STEP 1'",
+          "type": "content"
+        },
+        {
+          "id": "3d",
+          "text": "Pause prompt with C/S/T options appears after Step 1",
+          "type": "content"
+        },
+        {
+          "id": "3e",
+          "text": "No hardcoded session-specific paths appear in output",
+          "type": "content"
+        }
+      ]
+    }
+  ]
+}
