@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review"
+  short_description: "Review codice: file, commit, diff, staged"
+  default_prompt: "Usa $code-review per fare code review con scope multipli."
