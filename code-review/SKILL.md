@@ -231,6 +231,20 @@ If approved with `+tests`:
 3. Place in the correct path (e.g. `tests/`, `__tests__/`, `*.test.ts`)
 4. Propose tests in plan mode → wait for confirmation before creating files
 
+## Step 7: Offerta revisione Codex
+
+Al termine di tutti i fix (e degli eventuali test), mostrare **sempre** questo prompt:
+
+---
+> Vuoi eseguire una revisione approfondita con **Codex**?
+> Rispondi `sì` per lanciare `/codex:review`, oppure `no` per terminare.
+---
+
+- `sì` / `yes` / `s` / `ok` → invocare il tool `Skill` con `skill: "codex:review"`
+- `no` / `skip` / `nessuno` / `n` → terminare senza ulteriori azioni
+
+> **Nota**: lo Step 7 va mostrato in **qualsiasi scenario di uscita** — fix applicati, fix saltati (opzione 4), o dopo i test.
+
 ## Rules
 
 - **Never execute without approval**
