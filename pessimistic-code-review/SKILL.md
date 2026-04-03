@@ -6,7 +6,7 @@ description: >
   scope creep, catch misrepresented results, and issue a hard PASS/FAIL verdict
   backed only by evidence the verifier gathered independently.
   Use when the user says "pessimistic review", "adversarial review", "strict review",
-  "revisione pessimistica", "verifica avversariale", "is this really done",
+  "is this really done",
   "verify this is complete", "check for gold-plating", "don't trust the dev",
   or when they want an honest verification of a PR/commit/diff before merge.
   Also use when the user suspects the implementation over-delivered or that
@@ -33,14 +33,16 @@ You need two things:
    it before proceeding. Do not infer the spec from the code itself — that is
    circular reasoning.
 
-2. **The code / diff** — the actual changes to review. Determine scope:
-   - `file` — review a specific file
-   - `diff` / `uncommitted` — review `git diff` or `git diff --staged`
-   - `commit` — review `git show <sha>`
-   - `branch` — review `git diff main...HEAD`
+```
+## 🔍 Code Review — Select scope
 
-   If not specified, ask the user which scope applies.
+1. 📄 **Current file** — Review a specific file
+2. 🌿 **Branch diff** — Compare current branch vs base
+3. 📌 **Specific commit** — Review a specific commit
+4. 📝 **Uncommitted changes** — All modified, uncommitted files
 
+Scope? (1/2/3/4)
+```
 ---
 
 ## Phase 1 — Scope Audit (Anti Gold-Plating)
@@ -190,3 +192,90 @@ PARTIAL requires:
 
 [If FAIL: Required fixes — minimum list only]
 ```
+---
+
+### 📊 Summary
+| Severity | Count |
+|----------|-------|
+| 🔴 Critical | N |
+| 🟠 High | N |
+| 🟡 Medium | N |
+| 🟢 Low | N |
+
+**Overall score**: [A/B/C/D/F]
+- **A**: 0 critical, 0 high, ≤2 medium
+- **B**: 0 critical, 1–3 high, ≤2 medium
+- **C**: 0 critical, AND (4+ high OR 3+ medium)
+- **D**: exactly 1 critical (regardless of high/medium count)
+- **F**: 2+ critical
+
+---
+How would you like to proceed with the fixes?
+(1) 🔁 One by one — I'll propose each fix with explanation, you decide yes/skip
+(2) ✅ All at once — I'll apply everything together
+(3) 🔢 Select — tell me the numbers (e.g. "1,3")
+(4) ⏭️ None — review only, no changes
+```
+
+## Step 4: Wait for Approval
+
+**Do not execute anything** without an explicit answer:
+- `"1"` / `"one by one"` → enter interactive mode (Step 5A)
+- `"2"` / `"ok"` / `"yes"` / `"all"` → apply all fixes at once (Step 5B)
+- `"3"` / `"1, 3"` / `"only 1"` → apply selected fixes (Step 5B)
+- `"+tests"` / `"with tests"` → apply all + generate tests
+- `"4"` / `"no"` / `"skip"` → do not apply
+- `"only critical"` / `"only 🔴🟠"` → apply only that severity
+
+## Step 5A: Interactive One-by-One Mode
+
+For each fix, in order of severity (🔴 → 🟠 → 🟡 → 🟢):
+
+1. Show the fix as:
+```
+### Fix #N — [severity emoji] [severity]: [title]
+
+**WHY**: [1-2 sentence impact explanation]
+
+**Change** in `file:line`:
+\`\`\`
+// BEFORE
+[old code]
+
+// AFTER
+[new code]
+\`\`\`
+
+Apply? (`yes` / `skip`)
+```
+2. Wait for the user to reply before moving to the next fix.
+3. `"yes"` / `"ok"` / `"y"` → apply the fix, confirm with a brief note, then show the next fix
+4. `"skip"` / `"no"` / `"n"` → skip without applying, then show the next fix
+5. After all fixes: show a final summary table of applied/skipped fixes
+
+## Step 5B: Execute Approved Changes (bulk)
+
+1. Apply approved changes one after another without pausing
+2. After all changes: show a final summary table of applied/skipped fixes
+3. If a fix requires choices (e.g. naming), ask before proceeding
+
+## Step 6: Generate Tests (if requested)
+
+If approved with `+tests`:
+1. Identify the project's test framework (from CLAUDE.md or folder structure)
+2. Generate tests for the modified logic
+3. Place in the correct path (e.g. `tests/`, `__tests__/`, `*.test.ts`)
+4. Propose tests in plan mode → wait for confirmation before creating files
+
+
+## Rules
+
+- **Never execute without approval**
+- If no CLAUDE.md → note it, proceed with general best practices for the language
+- If no diff (scope 1) → analyze the whole file as "new code"
+- Keep suggestions concise; always cite file and specific line
+- For each issue: explain WHY (impact) and HOW (concrete fix)
+- Acknowledge what is done well (✅ section)
+- **Tests**: propose only if logic is not covered; respect existing framework
+- Adapt the checklist to the language/framework (e.g. React → re-renders, Laravel → N+1, Blazor → dispose pattern)
+- **Language**: always respond in Italian unless the user explicitly requests a different language
