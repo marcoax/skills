@@ -11,9 +11,9 @@ description: >
 
 # eraCms Admin Module Creator
 
-Creates a new CRUD module in the eraCms admin panel following the config-driven pattern documented in `guidelines/ADMIN_ARCHITECTURE.md`.
+Creates a new CRUD module in the eraCms admin panel following the config-driven pattern documented in `.ai/guidelines/ADMIN_ARCHITECTURE.md`.
 
-Before anything else, read `guidelines/ADMIN_ARCHITECTURE.md` to get the full context on `getFieldSpec()`, `DataTypeFactory`, `ValueObject`, admin config, and form saving.
+Before anything else, read `.ai/guidelines/ADMIN_ARCHITECTURE.md` to get the full context on `getFieldSpec()`, `DataTypeFactory`, `ValueObject`, admin config, and form saving.
 
 > **Language**: always respond in the language of the user's message.
 
@@ -54,6 +54,7 @@ Present the plan to the user using this structure:
 
 ### Files to create
 - database/migrations/YYYY_MM_DD_create_[entities]_table.php
+- database/factories/[Entity]Factory.php
 - app/eraCms/Builders/[Entity]Builder.php  (only if custom query logic is needed; otherwise use EraCmsBuilder directly)
 - app/Models/[Entity].php
 - tests/Feature/Admin/[Entity]AdminTest.php
@@ -112,9 +113,20 @@ php artisan migrate --no-interaction
 
 ---
 
-## Step 4: Builder
+## Step 4: Factory
 
-Create `app/eraCms/Builders/[Entity]Builder.php` **only if** the model has domain-specific query logic (semantic scopes, `active()` overrides, etc.). If not needed, skip the file and use `EraCmsBuilder` directly in the model.
+Create the factory with:
+```bash
+php artisan make:factory [Entity]Factory --model=[Entity] --no-interaction
+```
+
+Edit the generated factory to define meaningful default values for all fillable fields.
+
+---
+
+## Step 5: Builder
+
+Create `app/eraCms/Builders/[Entity]Builder.php` **only if** the model has domain-specific query logic (semantic scopes, `active()` overrides, etc.). If not needed, skip the file and use `EraCmsBuilder` directly in the model attribute.
 
 ```php
 namespace App\eraCms\Builders;
@@ -132,11 +144,13 @@ class [Entity]Builder extends EraCmsBuilder
 
 ---
 
-## Step 5: Model
+## Step 6: Model
 
-Create `app/Models/[Entity].php`. Section order: use → class → traits → properties → casts → relations → builder → getFieldSpec.
+Create `app/Models/[Entity].php`. Section order: attributes → use → class → traits → properties → casts → relations → getFieldSpec.
 
 Mandatory rules:
+- **PHP 8 Attributes**: always use `#[UseFactory]` and `#[UseEloquentBuilder]` — never override `newEloquentBuilder()`.
+- **HasFactory**: always include the `HasFactory` trait.
 - **Accessor/mutator**: always use the Laravel 9+ `Attribute` pattern (`fn` arrow). Never `getXxxAttribute()` / `setXxxAttribute()`.
 - **Dates**: use the `DatePresenter` trait if the model has `date_start`, `date_end`, `valid_from`, `valid_until`. For other date fields, create accessors in the model or in a dedicated presenter trait under `app/eraCms/Domain/[Entity]/`.
 - **casts()**: define as a method, not as a `$casts` property (project convention).
@@ -155,10 +169,18 @@ use App\eraCms\Builders\[Entity]Builder;
 use App\eraCms\Tools\ValueObject\Form\CheckBoxObject;
 use App\eraCms\Tools\ValueObject\Form\InputObject;
 // ... other ValueObjects
+use Database\Factories\[Entity]Factory;
+use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+#[UseFactory([Entity]Factory::class)]
+#[UseEloquentBuilder([Entity]Builder::class)]
 class [Entity] extends Model
 {
+    use HasFactory;
+
     protected $fillable = ['title', 'is_active', 'sort'];
     protected array $fieldspec = [];
 
@@ -167,33 +189,30 @@ class [Entity] extends Model
         return ['is_active' => 'boolean'];
     }
 
-    public function newEloquentBuilder($query): [Entity]Builder
-    {
-        return new [Entity]Builder($query);
-    }
-
     public function getFieldSpec(): array
     {
         return (new DataTypeFactory(fieldspec: $this->fieldspec))
             ->addId()
             ->add('title', new InputObject(required: true))
             ->add('is_active', (new CheckBoxObject)->setOptions(['default_value' => 1]))
+            ->add('sort', new NumberObject)
             ->get();
     }
 }
 ```
 
+> If the model does not need a custom builder, use `#[UseEloquentBuilder(EraCmsBuilder::class)]` instead.
+
 ### Addition for translatable models
 
 ```php
-use Astrotomic\Translatable\Contracts\Translatable as TranslatableContract;
-use Astrotomic\Translatable\Translatable;
-use App\eraCms\Domain\Traits\MaTranslatableHelperTrait;
+use App\eraCms\Translatable\MaTranslatableHelperTrait;
+use App\eraCms\Translatable\Translatable;
 
-class [Entity] extends Model implements TranslatableContract
+class [Entity] extends Model
 {
-    use Translatable;
     use MaTranslatableHelperTrait;
+    use Translatable;
 
     public array $translatedAttributes = ['title', 'description'];
     // Translated fields must NOT be in $fillable
@@ -204,7 +223,7 @@ Refer to `ADMIN_ARCHITECTURE.md` § "Layer 5: getFieldSpec()" for available Valu
 
 ---
 
-## Step 6: Translation
+## Step 7: Translation
 
 Open `resources/lang/it/admin.php` and add under the `models` key, in **alphabetical order**:
 
@@ -214,7 +233,7 @@ Open `resources/lang/it/admin.php` and add under the `models` key, in **alphabet
 
 ---
 
-## Step 7: Admin Config
+## Step 8: Admin Config
 
 Add the section in `config/eraCms/admin/list.php` → `'section'`:
 
@@ -223,6 +242,8 @@ Add the section in `config/eraCms/admin/list.php` → `'section'`:
     'model'  => '[Entity]',
     'title'  => '[Section Title]',
     'icon'   => '[fa-icon]',   // Font Awesome 5, without the fa- prefix
+    'section'      => '[group]',        // Optional: sidebar grouping key (e.g. 'cms', 'store')
+    'sectionTitle' => '[Group Title]',  // Optional: sidebar group label (e.g. 'Cms', 'Store')
     'roles'  => [/* from data collected in Step 1 */],
 
     'field' => [
@@ -243,6 +264,12 @@ Add the section in `config/eraCms/admin/list.php` → `'section'`:
         'edit' => 1, 'create' => 1, 'delete' => 1, 'copy' => 0,
         'export_csv' => 0, 'selectable' => 0, 'preview' => 0,
     ],
+
+    // Add only if export_csv action is enabled:
+    // 'field_exportable' => [
+    //     'id'    => ['type' => 'integer', 'field' => 'id',    'label' => 'id'],
+    //     'title' => ['type' => 'text',    'field' => 'title', 'label' => 'Title'],
+    // ],
 
     // Add only if active:
     // 'showMedia' => 1, 'showSeo' => 1, 'showBlock' => 1,
@@ -266,10 +293,35 @@ For translatable models that require a join on the translations table:
 
 ---
 
-## Step 8: PHPUnit Tests
+## Step 9: PHPUnit Tests
 
 ```bash
 php artisan make:test Feature/Admin/[Entity]AdminTest --phpunit --no-interaction
+```
+
+Use `#[Test]` attribute (from `PHPUnit\Framework\Attributes\Test`) on every test method — do not rely on `test` prefix.
+
+Test setUp pattern:
+```php
+use App\Models\AdminUser;
+use App\Models\Role;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+class [Entity]AdminTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->adminOption = $this->getAdminOptionSetUp();
+        $this->adminUser = AdminUser::factory()->create();
+        $role_admin = Role::factory()->create(['name' => 'admin', 'level' => 10]);
+        $this->adminUser->roles()->attach($role_admin);
+    }
+}
 ```
 
 Tests must cover:
@@ -281,7 +333,7 @@ Tests must cover:
 6. Update — `PUT /admin/[entities]/{id}` → redirect + DB updated
 7. Delete — `DELETE /admin/[entities]/{id}` → record removed from DB
 
-Use `actingAs()` with a user in the correct role (as defined in `roles`). Create factories with `php artisan make:factory [Entity]Factory --model=[Entity] --no-interaction` if they don't exist.
+Use `actingAs($this->adminUser, 'admin')` for all requests.
 
 Run:
 ```bash
@@ -292,7 +344,7 @@ If they pass, ask the user whether they want to run the full test suite with `ph
 
 ---
 
-## Step 9: Formatting
+## Step 10: Formatting
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -300,6 +352,6 @@ vendor/bin/pint --dirty --format agent
 
 ---
 
-## Step 10: Summary
+## Step 11: Summary
 
 Show a final summary with created/modified files and test results. If any tests are failing, do not mark the task as complete — help the user resolve the errors before closing.
