@@ -1,5 +1,5 @@
 ---
-name: analisi-ricette-per-tipo
+name: recipe-analizer
 description: Analizza le ricette delle macchine filtrando per tipo prodotto (productType) e genera statistiche di frequenza sui valori degli attributi tecnici. Produce output in HTML, Markdown e CSV. Usare quando l'utente chiede di analizzare ricette per tipo, fare statistiche su attributi ricette, o dice cose come "statistica ricette tipo=3", "analizza ricette latte", "leggi i file e fai statistica degli attributi delle ricette tipo X".
 ---
 
