@@ -12,10 +12,20 @@ import argparse
 import csv
 import html as html_mod
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
+
+
+def load_labels(path: Path) -> dict[str, str]:
+    """Parsa un file JSX/JS con oggetto chiave-valore di etichette.
+    Supporta sia virgolette singole che doppie: 'key': 'label' o "key": "label".
+    """
+    text = path.read_text(encoding="utf-8-sig")
+    pattern = re.compile(r"""['"]([\w]+)['"]\s*:\s*['"]([^'"]+)['"]""")
+    return {m.group(1): m.group(2) for m in pattern.finditer(text)}
 
 
 def read_uuid_list(path: Path) -> set[str]:
@@ -106,20 +116,24 @@ def compute_stats(
 
 
 def render_csv(
-    out_path: Path, stats: dict[str, list[tuple[object, int, float]]]
+    out_path: Path,
+    stats: dict[str, list[tuple[object, int, float]]],
+    labels: dict[str, str] | None = None,
 ) -> None:
     with out_path.open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["attributo", "valore", "occorrenze", "percentuale"])
+        w.writerow(["attributo", "etichetta", "valore", "occorrenze", "percentuale"])
         for attr, rows in stats.items():
+            label = (labels or {}).get(attr, attr)
             for val, cnt, pct in rows:
-                w.writerow([attr, val, cnt, f"{pct:.1f}"])
+                w.writerow([attr, label, val, cnt, f"{pct:.1f}"])
 
 
 def render_md(
     out_path: Path,
     stats: dict[str, list[tuple[object, int, float]]],
     meta: dict,
+    labels: dict[str, str] | None = None,
 ) -> None:
     lines: list[str] = []
     lines.append(f"# Statistiche ricette — tipo={meta['type']}")
@@ -132,7 +146,9 @@ def render_md(
     lines.append(f"**File UUID:** `{meta['uuid_path']}`")
     lines.append("")
     for attr, rows in stats.items():
-        lines.append(f"## {attr}")
+        label = (labels or {}).get(attr, attr)
+        heading = label if label == attr else f"{label} (`{attr}`)"
+        lines.append(f"## {heading}")
         if not rows:
             lines.append("_Attributo non presente nelle osservazioni._")
             lines.append("")
@@ -179,6 +195,7 @@ def render_html(
     out_path: Path,
     stats: dict[str, list[tuple[object, int, float]]],
     meta: dict,
+    labels: dict[str, str] | None = None,
 ) -> None:
     esc = html_mod.escape
     parts: list[str] = []
@@ -196,10 +213,17 @@ def render_html(
     parts.append("</div>")
     parts.append("<div class='toc'><strong>Attributi analizzati</strong><ul>")
     for attr in stats.keys():
-        parts.append(f"<li><a href='#{esc(attr)}'>{esc(attr)}</a></li>")
+        label = (labels or {}).get(attr, attr)
+        toc_text = f"{esc(label)} <small>({esc(attr)})</small>" if label != attr else esc(attr)
+        parts.append(f"<li><a href='#{esc(attr)}'>{toc_text}</a></li>")
     parts.append("</ul></div>")
     for attr, rows in stats.items():
-        parts.append(f"<h2 id='{esc(attr)}'>{esc(attr)}</h2>")
+        label = (labels or {}).get(attr, attr)
+        if label != attr:
+            h2_content = f"{esc(label)} <small style='color:#888;font-weight:normal'>({esc(attr)})</small>"
+        else:
+            h2_content = esc(attr)
+        parts.append(f"<h2 id='{esc(attr)}'>{h2_content}</h2>")
         if not rows:
             parts.append("<p><em>Attributo non presente nelle osservazioni.</em></p>")
             continue
@@ -231,7 +255,17 @@ def main() -> int:
                     help="Lista attributi CSV, oppure 'all' per tutti (default: all)")
     ap.add_argument("--out-dir", type=Path, required=True,
                     help="Directory dove scrivere i tre file di output")
+    ap.add_argument("--labels-file", type=Path, default=None,
+                    help="File JSX/JS con etichette italiane (es. data/it.jsx)")
     args = ap.parse_args()
+
+    labels: dict[str, str] | None = None
+    if args.labels_file:
+        lf = args.labels_file.resolve()
+        if not lf.is_file():
+            print(f"ATTENZIONE: file etichette non trovato: {lf}", file=sys.stderr)
+        else:
+            labels = load_labels(lf)
 
     recipes_path: Path = args.recipes.resolve()
     if not recipes_path.is_file():
@@ -309,9 +343,9 @@ def main() -> int:
     csv_path = out_dir / f"{prefix}.csv"
     md_path = out_dir / f"{prefix}.md"
     html_path = out_dir / f"{prefix}.html"
-    render_csv(csv_path, stats)
-    render_md(md_path, stats, meta)
-    render_html(html_path, stats, meta)
+    render_csv(csv_path, stats, labels)
+    render_md(md_path, stats, meta, labels)
+    render_html(html_path, stats, meta, labels)
 
     print(f"CSV:  {csv_path}")
     print(f"MD:   {md_path}")
