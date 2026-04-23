@@ -1,6 +1,6 @@
 ---
 name: current-file-review
-description: Review changes in the currently open file against project best practices. Use when user says "review", "review changes", "check this file", "revisiona", "controlla modifiche", or asks to validate current work. Operates in PLAN MODE - proposes improvements, waits for approval before executing.
+description: Review changes in one explicitly identified current or open file against project best practices. Use only when the user clearly refers to the current file, says "this file", "current file", "open file", or provides a single file path to review. Do not use for generic review requests, branch diffs, commits, or repository-wide review; use code-review or a stack-specific review skill instead. Operates in PLAN MODE - proposes improvements, waits for approval before executing.
 ---
 
 # Current File Review
