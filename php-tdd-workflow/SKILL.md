@@ -1,6 +1,6 @@
 ---
 name: php-tdd-workflow
-description: "Workflow strutturato per implementazione di piani tecnici PHP/Laravel con supporto TDD. Usa questa skill per progetti PHP/Laravel ogni volta che l'utente ha un piano, una specifica tecnica, o dice 'implementa questo', 'esegui il piano', 'partiamo con l'implementazione'. Gestisce l'intero ciclo: specifica, stress-test, decomposizione task, TDD, verifica, commit, delegando a /write-a-prd, /grill-me e /tdd quando disponibili. Garantisce un task alla volta, nessun salto di step, file di progresso sempre aggiornato."
+description: "Workflow strutturato per eseguire un piano tecnico gia definito in progetti PHP/Laravel con task decomposition, approval gates, TDD, verifica e tracciamento del progresso. Usa questa skill quando l'utente ha gia un piano o una specifica concreta e vuole eseguirla passo per passo in PHP/Laravel, oppure dice 'esegui il piano', 'partiamo con l'implementazione', o 'implementa questa specifica'. Non usarla per richieste TDD generiche o per semplice test-first development senza orchestrazione del workflow; in quel caso usa tdd."
 ---
 
 # PHP TDD Workflow Skill

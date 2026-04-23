@@ -1,12 +1,11 @@
 ---
 name: skill-optimizer
 description: >
-  Optimize an existing Claude skill using a structured 5-step diagnostic and improvement loop.
-  Use this skill whenever the user wants to improve, fix, or refine an existing skill — including
-  when they say "ottimizza questa skill", "migliora questo skill", "optimize my skill",
-  "why is my skill not working well", "rendimi questo skill migliore", or "voglio ottimizzare".
-  Also trigger when the user pastes a SKILL.md or skill prompt and asks for improvements,
-  or when they describe repeated problems with a skill's outputs.
+  Improve an existing skill through a guided diagnostic and refinement loop led by the agent and user.
+  Use when the user wants to debug why a skill underperforms, refine a SKILL.md step by step,
+  review a pasted skill prompt, or improve a skill interactively with human checkpoints.
+  Prefer autoresearch instead when the user explicitly wants autonomous repeated eval runs,
+  mutation experiments, score-driven benchmarking, or automatic optimization loops.
 ---
 
 # Skill Optimizer

@@ -1,6 +1,6 @@
 ---
 name: autoresearch
-description: "Autonomously optimize any Claude Code skill by running it repeatedly, scoring outputs against binary evals, mutating the prompt, and keeping improvements. Based on Karpathy's autoresearch methodology. Use when: optimize this skill, improve this skill, run autoresearch on, make this skill better, self-improve skill, benchmark skill, eval my skill, run evals on. Outputs: an improved SKILL.md, a results log, and a changelog of every mutation tried."
+description: "Autonomously optimize an existing skill by running repeated evals, scoring outputs against binary checks, mutating the prompt, and keeping winning variants. Based on Karpathy's autoresearch methodology. Use only when the user explicitly wants autoresearch, repeated benchmarking, run-evals loops, mutation experiments, pass-fail scoring, or autonomous optimization with tracked results. Do not use for simple manual refinement of a skill; use skill-optimizer for guided interactive improvement. Outputs: an improved SKILL.md, a results log, and a changelog of every mutation tried."
 ---
 
 # Autoresearch for Skills

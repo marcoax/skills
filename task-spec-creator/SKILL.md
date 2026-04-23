@@ -1,6 +1,6 @@
 ---
 name: task-spec-creator
-description: Generate a structured task specification markdown file by interviewing the developer. Use this skill whenever the user wants to create a spec, define a task, start a new sprint ticket, document implementation requirements, or says things like "creiamo una specifica", "voglio definire la task", "ho un ticket da implementare", "partiamo dalla specifica". The skill conducts a context-aware interview and produces a ready-to-review TASK_SPEC.md file named after the Trello/Jira ticket ID.
+description: Generate a structured TASK_SPEC.md for a single implementation task, sprint ticket, or technical work item by interviewing the developer. Use when the user wants to define one concrete task, capture implementation requirements, document acceptance criteria, or says things like "creiamo una specifica", "voglio definire la task", "ho un ticket da implementare", or "partiamo dalla specifica". Do not use for product-level feature discovery or PRDs; use write-a-prd for that. Do not use for incremental refactor roadmaps; use request-refactor-plan for that.
 ---
 
 # Task Spec Creator

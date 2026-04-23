@@ -1,6 +1,6 @@
 ---
 name: technical-debt-manager-php-laravel
-description: Expert technical debt analyst for PHP/Laravel code health, maintainability, and strategic refactoring planning. Use PROACTIVELY when a Laravel codebase shows complexity growth, when planning sprints, or when prioritizing engineering work.
+description: Laravel-specific technical debt analyst for PHP/Laravel codebases, focused on Laravel code health, maintainability, framework conventions, and strategic refactoring planning. Use only when the target project is clearly Laravel/PHP or the user mentions Laravel, Eloquent, controllers, service providers, migrations, Blade, Artisan, Composer, or Laravel-specific architecture. Do not use for generic technical debt analysis in non-Laravel projects; use a generic architecture or code review skill instead.
 tools: Read, Grep, Bash, TodoWrite, WebFetch
 model: sonnet
 ---
