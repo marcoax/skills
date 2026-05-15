@@ -1,6 +1,6 @@
 # marcoax/skills
 
-Collection of reusable skills for coding agents, organized under [`skills/`](./skills). This repository includes general-purpose skills, review/TDD workflow skills, and a few skills tailored to specific stacks or projects.
+Collection of reusable skills for coding agents. This repository contains my own (non third-party) skills, organized by purpose. Third-party skills are kept separately under `third-part/` and are not listed here.
 
 ## Installation
 
@@ -11,19 +11,19 @@ The recommended way to install these skills from GitHub is to use the official V
 npx skills@latest add marcoax/skills --list
 
 # Install a specific skill
-npx skills@latest add marcoax/skills --skill tdd
+npx skills@latest add marcoax/skills --skill code-review
 
 # Install multiple skills
-npx skills@latest add marcoax/skills --skill grill-me --skill write-a-prd
+npx skills@latest add marcoax/skills --skill react-review --skill task-spec-creator
 
 # Install all skills from the repository
 npx skills@latest add marcoax/skills --skill '*'
 
 # Install for a specific agent
-npx skills@latest add marcoax/skills --skill tdd --agent codex
+npx skills@latest add marcoax/skills --skill code-review --agent codex
 
 # Install globally
-npx skills@latest add marcoax/skills --skill tdd --agent codex --global
+npx skills@latest add marcoax/skills --skill code-review --agent codex --global
 ```
 
 Useful notes:
@@ -32,64 +32,86 @@ Useful notes:
 - `--list` shows detected skills without installing them.
 - `--skill '*'` installs every skill found in the repository.
 - `--agent` lets you target a specific client, such as `codex` or `claude-code`.
-- If you prefer an interactive flow, you can omit some flags and let the CLI guide you.
 
 ## Repository structure
 
 ```text
-README.md repository overview and installation notes
-REPORT.md internal supporting documentation
+personal/          domain-specific skills (Carimali, MQTT, PHP/Laravel, Blazor)
+planning/          planning, spec, triage workflows
+review/            code review variants
+skill-management/  meta-skills to author and tune other skills
+utilities/         general-purpose helpers
+third-part/        third-party skills (not listed below)
 ```
-
-The official `skills` CLI reads the GitHub repository directly and discovers the skills available under `skills/`, so no extra local setup is required for installation.
 
 ## Available skills
 
-| Skill                                | Path                                        | Description                                                                                                                    |
-| ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `agent-md-creator`                   | `skills/agent-md-creator`                   | Generates standardized `AGENT.md` or `CLAUDE.md` files to document a project for AI agents.                                    |
-| `autoresearch`                       | `skills/autoresearch`                       | Automatically improves an existing skill through repeated eval, scoring, and prompt mutation cycles.                           |
-| `blazor-localization`                | `skills/blazor-localization`                | Automates localization for Razor/Blazor files, including RESX key generation and string replacement.                           |
-| `code-review`                        | `skills/code-review`                        | Runs multi-scope code review in plan mode for files, branches, commits, or uncommitted changes.                                |
-| `current-file-review`                | `skills/current-file-review`                | Reviews changes in the current file against project guidelines and best practices.                                             |
-| `design-an-interface`                | `skills/design-an-interface`                | Produces multiple radically different interface designs for the same module and compares tradeoffs.                            |
-| `eracms-admin-module`                | `skills/eracms-admin-module`                | Creates a config-driven CRUD module for the eraCms admin panel.                                                                |
-| `grill-me`                           | `skills/grill-me`                           | Interviews the user aggressively to stress-test plans, designs, and technical decisions.                                       |
-| `improve-codebase-architecture`      | `skills/improve-codebase-architecture`      | Explores a codebase to identify architecture and testability improvements.                                                     |
-| `laracms-code-review`                | `skills/laracms-code-review`                | Code review skill focused on LaraCMS/Laravel projects and admin architecture guidelines.                                       |
-| `optimize-prompt`                    | `skills/optimize-prompt`                    | Rewrites prompts to make them more effective for AI agents before execution.                                                   |
-| `pessimistic-code-review`            | `skills/pessimistic-code-review`            | Runs adversarial code review using Independent Adversarial Verification (IAV) and returns an evidence-based PASS/FAIL verdict. |
-| `php-tdd-workflow`                   | `skills/php-tdd-workflow`                   | Guided PHP/Laravel implementation workflow with task breakdown, TDD, verification, and progress tracking.                      |
-| `planning-with-files`                | `skills/planning-with-files`                | Implements file-based planning with task, findings, and progress documents for complex work.                                   |
-| `prd-to-issues`                      | `skills/prd-to-issues`                      | Breaks a PRD into small, independently actionable GitHub issues using vertical slices.                                         |
-| `prd-to-plan`                        | `skills/prd-to-plan`                        | Turns a PRD into a multi-phase implementation plan using tracer-bullet vertical slices.                                        |
-| `react-review`                       | `skills/react-review`                       | Runs React-specific review for hooks, state, rendering, data fetching, and component APIs.                                     |
-| `request-refactor-plan`              | `skills/request-refactor-plan`              | Creates an incremental refactor plan through user interview and repository exploration.                                        |
-| `skill-optimizer`                    | `skills/skill-optimizer`                    | Improves existing skills through a structured diagnostic and optimization loop.                                                |
-| `task-spec-creator`                  | `skills/task-spec-creator`                  | Creates a technical task specification markdown file through a structured developer interview.                                 |
-| `tdd`                                | `skills/tdd`                                | Applies a red-green-refactor workflow with emphasis on behavior-focused tests and vertical slices.                             |
-| `technical-debt-manager-php-laravel` | `skills/technical-debt-manager-php-laravel` | Analyzes PHP/Laravel technical debt and produces prioritized refactoring guidance.                                             |
-| `write-a-prd`                        | `skills/write-a-prd`                        | Builds a PRD through user interview, codebase exploration, and module definition.                                              |
-| `write-a-skill`                      | `skills/write-a-skill`                      | Creates new agent skills with structure, progressive disclosure, and bundled resources.                                        |
+### personal/
+
+| Skill | Path | Description |
+| --- | --- | --- |
+| `blazor-localization` | `personal/blazor-localization` | Automates localization for Blazor Razor files (Italian string detection, RESX key generation, code substitution). |
+| `eracms-admin-module` | `personal/eracms-admin-module` | Creates a config-driven CRUD module for the eraCms admin panel. |
+| `laracms-code-review` | `personal/laracms-code-review` | Code review focused on LaraCMS/Laravel admin architecture and best practices. |
+| `log-analyzer` | `personal/log-analyzer` | Analyzes Symfony `app.ERROR` log files for the Carimali/caricare project. |
+| `log-cleaner-process` | `personal/log-cleaner-process` | Deep-clean a Symfony log keeping only "Process already in progress" error blocks, filtered by serial number. |
+| `log-cleaner-process-context` | `personal/log-cleaner-process-context` | Cleans a log keeping process-error lines + context lines and generates an HTML report of pre-error commands. |
+| `message-log-analizer` | `personal/message-log-analizer` | Analyzes Carimali MQTT message logs and generates Packet-received traffic trend reports. |
+| `mqtt-decode` | `personal/mqtt-decode` | Decodes a raw Carimali MQTT binary payload (hex string) into a human-readable annotated table. |
+| `mqtt-error-fixer` | `personal/mqtt-error-fixer` | Analyzes MQTT pipeline errors from CariSupport and proposes surgical fixes. |
+| `mqtt-payload` | `personal/mqtt-payload` | Generates MQTT binary payloads (hex strings) for the Carimali coffee machine protocol. |
+| `php-tdd-workflow` | `personal/php-tdd-workflow` | Structured PHP/Laravel implementation workflow with task breakdown, TDD, verification, and progress tracking. |
+| `process-error-context-cleaner` | `personal/process-error-context-cleaner` | Lighter alternative to `log-cleaner-process`: keeps only process-error lines plus 3 lines of context. |
+| `recipe-analizer` | `personal/recipe-analizer` | Analyzes machine recipes by sub-product type and generates attribute frequency statistics (HTML/MD/CSV). |
+| `technical-debt-manager-php-laravel` | `personal/technical-debt-manager-php-laravel` | Technical debt analyst for PHP/Laravel: code health, maintainability, refactoring planning. |
+
+### planning/
+
+| Skill | Path | Description |
+| --- | --- | --- |
+| `planning-with-files` | `planning/planning-with-files` | Manus-style file-based planning (`task_plan.md`, `findings.md`, `progress.md`) for complex multi-step work. |
+| `prd-to-plan` | `planning/prd-to-plan` | Turns a PRD into a multi-phase implementation plan using tracer-bullet vertical slices. |
+| `task-spec-creator` | `planning/task-spec-creator` | Generates a structured `TASK_SPEC.md` for a single implementation task through developer interview. |
+| `triage-issue` | `planning/triage-issue` | Triages a bug by exploring the codebase to find root cause, then creates a GitHub issue with a TDD-based fix plan. |
+
+### review/
+
+| Skill | Path | Description |
+| --- | --- | --- |
+| `code-review` | `review/code-review` | Multi-scope code review in plan mode (file, branch diff, commit, uncommitted). |
+| `goal-spec-review` | `review/goal-spec-review` | Pre-flight review of an implementation spec/plan for unclear, contradictory, or missing points before `/goal` execution. |
+| `pessimistic-code-review` | `review/pessimistic-code-review` | Adversarial code review using Independent Adversarial Verification (IAV); returns evidence-based PASS/FAIL. |
+| `react-review` | `review/react-review` | React 18/19 specific review: hooks, state, rendering, data fetching, component APIs. |
+
+### skill-management/
+
+| Skill | Path | Description |
+| --- | --- | --- |
+| `autoresearch` | `skill-management/autoresearch` | Autonomously optimizes a skill through repeated evals, scoring, and prompt mutations. |
+| `find-skills` | `skill-management/find-skills` | Helps users discover and install agent skills based on what they want to do. |
+| `skill-creator` | `skill-management/skill-creator` | Creates and improves skills; runs benchmarks and variance analysis on description triggering. |
+| `skill-optimizer` | `skill-management/skill-optimizer` | Improves an existing skill through a guided, interactive diagnostic loop with checkpoints. |
+
+### utilities/
+
+| Skill | Path | Description |
+| --- | --- | --- |
+| `agent-md-creator` | `utilities/agent-md-creator` | Generates standardized `CLAUDE.md` / `AGENT.md` files to document a project for AI agents. |
+| `optimize-prompt` | `utilities/optimize-prompt` | Rewrites prompts to make them more effective for AI agents before execution. |
 
 ## Compatibility notes
 
-Not every skill is fully generic:
-
-- `blazor-localization` assumes a Blazor workflow with RESX files.
-- `laracms-code-review` is designed for Laravel/PHP contexts.
-- `php-tdd-workflow` is strongly oriented toward PHP/Laravel implementation flows.
-- some skills reference external tools or project conventions, so reading the related `SKILL.md` first is recommended before using them in a different environment.
+Several skills under `personal/` are tied to specific stacks or projects (Carimali coffee machines, Symfony, PHP/Laravel, LaraCMS, Blazor) and may not be useful outside those contexts. Always read the related `SKILL.md` before adopting one in a different environment.
 
 ## Local development
 
-If you want to inspect or modify a skill:
+To inspect or modify a skill:
 
-1. open its directory under `skills/`
+1. open its directory (e.g. `personal/mqtt-decode/`)
 2. read `SKILL.md` first
 3. check any subdirectories such as `references/`, `steps/`, `templates/`, `scripts/`, or `assets/`
 
-To quickly verify what the official CLI detects:
+To verify what the official CLI detects:
 
 ```bash
 npx skills@latest add marcoax/skills --list
