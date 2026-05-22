@@ -1,8 +1,14 @@
 ---
 name: goal-spec-review
-description: Pre-flight audit of a /goal spec: verifies that objectives are clear and fixed, and that completion criteria are explicit and checkable BEFORE coding begins. Use when the user invokes /goal with a spec file or inline plan. If objectives are vague or success criteria are missing or unverifiable, stop and ask — do not start coding until the user has defined how "done" will be measured. Safety checks are mandatory and cannot be skipped. For deeper stress-testing of objectives and criteria, escalate to grill-with-docs.
+description: >
+  Pre-flight audit of a /goal spec: verifies that objectives are clear and fixed,
+  and that completion criteria are explicit and checkable BEFORE coding begins.
+  Use when the user invokes /goal with a spec file or inline plan.
+  If objectives are vague or success criteria are missing or unverifiable,
+  stop and ask — do not start coding until the user has defined how done will be measured.
+  Safety checks are mandatory and cannot be skipped.
+  For deeper stress-testing of objectives and criteria, escalate to grill-with-docs.
 ---
-
 # Goal Spec Review
 
 A 30-second audit prevents silent wrong decisions during implementation.
