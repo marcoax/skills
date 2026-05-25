@@ -1,0 +1,51 @@
+<p class="article-intro">This article isn't meant to be a ranking or a competition between tools. There's no winner here. The goal is much simpler: to share a real-world case where the solution came from an unexpected direction, and to remind ourselves that when facing a complex bug, locking ourselves into a single approach is often the most effective way to stay stuck.</p>
+<hr />
+<h2>The Problem</h2>
+<p>After migrating from DocumentDB 3.6 to DocumentDB 5, on a PHP 7.2 / Symfony 3.4 / <code>alcaeus/mongo-php-adapter 1.1.8</code> stack, this warning started appearing on every MongoDB operation (insert, update, deleteMany):</p>
+<pre><code>bson_append_array(): invalid array detected. first element of array parameter is not "0"</code></pre>
+<p>Key characteristics of the bug:</p>
+<ul>
+<li>Present <strong>only on AWS DocumentDB 5</strong>, not on local MongoDB</li>
+<li>Queries <strong>executed correctly</strong> &mdash; no data lost</li>
+<li><code>array_values()</code> on the array passed to the query didn't fix anything</li>
+<li>Logs confirmed the array had sequential keys starting from <code>0</code></li>
+</ul>
+<hr />
+<h2>The First Instinct: StackOverflow</h2>
+<p>As almost always when encountering an obscure bug, the first move was to search StackOverflow. In this <a href="https://stackoverflow.com/questions/69670396/mongodb-documentdb-bson-append-array-invalid-array-detected-first-element-of" target="_blank" rel="noopener">thread</a><strong><a href="https://stackoverflow.com/questions/69670396/mongodb-documentdb-bson-append-array-invalid-array-detected-first-element-of" target="_blank" rel="noopener"> about MongoDB/DocumentDB bson_append_array() error</a>,</strong> the suggested solution was to add <code>&amp;authMechanism=SCRAM-SHA-1</code> to the connection string. A change that, honestly, seemed unlikely to work &mdash; what does the authentication mechanism have to do with a BSON serialization error? It looked like one of those "it works but nobody knows why" solutions, and that wasn't enough. So I decided to truly understand the problem and turned to AI.</p>
+<p>More or less all AI agents (Claude, Codex, Kimi, Qwen) proposed the solution summarized below.</p>
+<hr />
+<h2>Debugging with AI</h2>
+<p>The debugging journey followed this sequence:</p>
+<p><strong>1. Non-sequential array hypothesis</strong> &mdash; verified and discarded through granular logging directly in the code. The array had sequential keys starting from <code>0</code>, <code>array_values()</code> changed nothing.</p>
+<p><strong>2. <code>$in</code> workaround with single element</strong> &mdash; replacing <code>$in</code> with direct match for single-element arrays. Didn't fix it.</p>
+<p><strong>3. Explicit normalization</strong> &mdash; <code>array_filter</code> + <code>array_map('strval')</code> + <code>array_values()</code>. Didn't fix it.</p>
+<p><strong>4. Warning suppression</strong> with <code>restore_error_handler</code>:</p>
+<pre><code>set_error_handler(function() {}, E_WARNING);
+$this-&gt;collection-&gt;deleteMany(['_id' =&gt; ['$in' =&gt; $ids]]);
+restore_error_handler();</code></pre>
+<p>It worked as a workaround but masked the problem without solving it.</p>
+<div class="highlight-box"><strong>AI Conclusion:</strong> None of the proposed solutions eliminated the warning. The correct diagnosis was that the bug resided in the <code>alcaeus</code> layer with DocumentDB 5, and the definitive fix required a deeper migration &mdash; removing <code>alcaeus</code> and migrating to the native <code>mongodb/mongodb</code> driver.</div>
+<hr />
+<h2>Back to the Beginning</h2>
+<p>After half a day of debugging &mdash; and more &mdash; with no concrete results, with the warning still there and none of the AI solutions actually eliminating it, that moment every developer knows well had arrived: the existential phase. The one where you start questioning not just the code, but your entire career. Twenty years of experience and a PHP warning sends you into crisis. Maybe I should have become an accountant.</p>
+<p>And it was precisely in that moment of healthy desperation that I decided to play the "all or nothing" card: go back to the starting point and try that StackOverflow solution I had smugly dismissed at the beginning because it seemed too far-fetched to be true. After all, what did I have to lose? I'd already left my dignity somewhere between the third <code>var_dump</code> and the fifth <code>array_values()</code>.</p>
+<hr />
+<h2>The StackOverflow Solution</h2>
+<p>A StackOverflow thread suggested adding to the connection string:</p>
+<pre><code>&amp;authMechanism=SCRAM-SHA-1</code></pre>
+<p>One line. Warning gone. Faster queries as a side effect.</p>
+<hr />
+<h2>Why It Works</h2>
+<p><code>SCRAM-SHA-256</code> is the default authentication mechanism on DocumentDB 5. It requires more round-trips during the handshake compared to <code>SCRAM-SHA-1</code>. This changes how the driver negotiates capabilities with the server, and <code>alcaeus</code> in legacy mode behaves differently in BSON serialization &mdash; eliminating the warning as a side effect.</p>
+<p>It's not a logically direct solution, it's empirical. But it works.</p>
+<hr />
+<h2>The Lesson</h2>
+<p>Systematic debugging with AI led to:</p>
+<ul>
+<li>Correctly identifying where the problem resided (<code>alcaeus</code> layer)</li>
+<li>Confirming that queries worked despite the warning</li>
+<li>Defining the definitive long-term fix (removing <code>alcaeus</code>)</li>
+</ul>
+<p>The StackOverflow solution resolved the symptom in an unexpected and non-obvious way, with a performance bonus.</p>
+<p>Neither approach is <strong>"better"</strong> &mdash; they're complementary. Systematic debugging provides understanding of the problem, the community provides battle-tested empirical solutions. When facing a bug, keeping an open mind to both sources is often the difference between solving a problem and truly understanding it.</p>
