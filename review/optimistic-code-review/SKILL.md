@@ -1,21 +1,25 @@
 ---
-name: code-review
+name: optimistic-code-review
 description: >
-  Comprehensive generic code review tool. Supports multiple scopes: current file, branch diff, specific commit, uncommitted changes.
+  Constructive, generic code review tool — the optimistic counterpart to pessimistic-code-review.
+  Surfaces issues with WHY + HOW, acknowledges what is done well, and proposes fixes you approve before they are applied.
+  Supports multiple scopes: current file, branch diff, specific commit, uncommitted changes.
   Triggers: "review", "code review", "revisiona", "controlla modifiche", "check this file", "review branch", "review commit".
   Operates in PLAN MODE - proposes improvements, waits for approval before executing.
   Do NOT use when a stack-specific or specialized review skill fits better:
   use react-review for React 18/19 SPA projects (.tsx/.jsx files, React dependency, hooks/JSX/components review);
   use laracms-code-review for LaraCMS or Laravel admin projects (presence of guidelines/ADMIN_ARCHITECTURE.md, Laravel structure);
-  use pessimistic-code-review when the user wants an adversarial PASS/FAIL verdict rather than suggestions
+  use pessimistic-code-review when the user wants an adversarial PASS/FAIL verdict rather than constructive suggestions
   ("pessimistic review", "strict review", "is this really done", "verify this is complete").
 ---
 
-# Code Review
+# Optimistic Code Review
 
-Comprehensive code review with multiple scopes. Operates in **plan mode**: proposes, does not execute.
+Constructive, multi-scope code review — the optimistic counterpart to `pessimistic-code-review`:
+it proposes concrete improvements and highlights strengths rather than issuing a PASS/FAIL verdict.
+Operates in **plan mode**: proposes, does not execute.
 
-> **Language rule**: detect the language of the user's input and respond entirely in that language — including section headers, explanations, and questions. Never switch languages mid-conversation.
+> **Language rule**: detect the language of the user's input and respond entirely in that language — including section headers, explanations, questions, **the fix menu, the per-fix "apply?" prompt, and the final Codex offer**. All user-facing snippets in the steps below are **English templates to render in the user's language**, not literal text. Never switch languages mid-conversation.
 
 ## Step 0: Interactive Scope Selection
 
@@ -64,6 +68,14 @@ Step 0 is complete (scope + format confirmed). Call `ExitPlanMode` before runnin
 All steps below require live git output — plan mode produces empty diffs.
 
 ## Step 1: Gather Context
+
+### Precondition — confirm this is a git repository
+```bash
+git rev-parse --is-inside-work-tree 2>/dev/null || echo "NOT_A_GIT_REPO"
+```
+If the output is `NOT_A_GIT_REPO`: stop the git-based flow and tell the user no git repository was found.
+For **Scope 1 (current file)** offer to review the file as plain "new code" (no diff); for the other scopes,
+ask the user to run the review from inside a git repository. Never run the diff commands below blindly.
 
 ### Project best practices
 ```bash
@@ -123,6 +135,7 @@ Analyze the code against this checklist, adapted to the detected language/framew
 
 Output the review using the template below, in the format chosen in Step 0.
 **Always include all 4 severity sections** — if a section has 0 issues, write `_None found._` instead of omitting the section.
+**The ✅ Positives section is mandatory too** — never omit it and never leave it empty: list at least one genuine strength of the code (sound choices, good tests, clear naming). This is the defining trait of an *optimistic* review.
 
 ### Review template
 
@@ -154,7 +167,7 @@ Output the review using the template below, in the format chosen in Step 0.
 1. **[File:Line]** — [issue title]
    - **HOW**: [suggestion]
 
-### ✅ Positives
+### ✅ Positives [≥1, required]
 - [what is done well and why]
 
 ### 🧪 Suggested tests
@@ -171,32 +184,34 @@ Output the review using the template below, in the format chosen in Step 0.
 | 🟡 Medium | N |
 | 🟢 Low | N |
 
-**Overall score**: [A/B/C/D/F]
-- **A**: 0 critical, 0 high, ≤2 medium
-- **B**: 0 critical, 1–3 high, ≤2 medium
-- **C**: 0 critical, AND (4+ high OR 3+ medium)
-- **D**: exactly 1 critical (regardless of high/medium count)
-- **F**: 2+ critical
+**Overall score**: [A/B/C/D/F] — evaluate the rules **top-down and assign the first match** (so they never overlap):
+- **F**: ≥2 critical
+- **D**: exactly 1 critical (regardless of high/medium)
+- **C**: 0 critical AND (≥4 high OR ≥3 medium)
+- **B**: 0 critical AND 1–3 high AND ≤2 medium
+- **A**: 0 critical AND 0 high AND ≤2 medium
+
+🟢 Low issues never change the grade. Always state the grade together with the counts table above so the verdict is reproducible.
 
 ---
-Come vuoi procedere con i fix?
-(1) 🔁 Uno alla volta — propongo ogni fix con spiegazione, tu decidi sì/skip
-(2) ✅ Tutti insieme — applico tutto in una volta
-(3) 🔢 Seleziona — dimmi i numeri (es. "1,3")
-(4) ⏭️ Nessuno — solo review, niente modifiche
+How do you want to proceed with the fixes?
+(1) 🔁 One by one — I propose each fix with an explanation, you decide apply/skip
+(2) ✅ All at once — I apply everything in one go
+(3) 🔢 Select — tell me the numbers (e.g. "1,3")
+(4) ⏭️ None — review only, no changes
 ```
 
-## Step 4: Wait for Approval
+## Step 3: Wait for Approval
 
 **Do not execute anything** without an explicit answer:
-- `"1"` / `"uno alla volta"` / `"one by one"` → enter interactive mode (Step 5A)
-- `"2"` / `"ok"` / `"yes"` / `"all"` / `"tutti"` → apply all fixes at once (Step 5B)
-- `"3"` / `"1, 3"` / `"only 1"` → apply selected fixes (Step 5B)
+- `"1"` / `"uno alla volta"` / `"one by one"` → enter interactive mode (Step 4A)
+- `"2"` / `"ok"` / `"yes"` / `"all"` / `"tutti"` → apply all fixes at once (Step 4B)
+- `"3"` / `"1, 3"` / `"only 1"` → apply selected fixes (Step 4B)
 - `"+tests"` / `"with tests"` → apply all + generate tests
 - `"4"` / `"no"` / `"skip"` / `"nessuno"` → do not apply
 - `"only critical"` / `"only 🔴🟠"` → apply only that severity
 
-## Step 5A: Interactive One-by-One Mode
+## Step 4A: Interactive One-by-One Mode
 
 For each fix, in order of severity (🔴 → 🟠 → 🟡 → 🟢):
 
@@ -206,29 +221,29 @@ For each fix, in order of severity (🔴 → 🟠 → 🟡 → 🟢):
 
 **WHY**: [1-2 sentence impact explanation]
 
-**Modifica** in `file:line`:
+**Change** in `file:line`:
 \`\`\`
-// PRIMA
+// BEFORE
 [old code]
 
-// DOPO
+// AFTER
 [new code]
 \`\`\`
 
-Applico? (`sì` / `skip`)
+Apply? (`yes` / `skip`)
 ```
 2. Wait for the user to reply before moving to the next fix.
 3. `"sì"` / `"yes"` / `"ok"` / `"s"` → apply the fix, confirm with a brief note, then show the next fix
 4. `"skip"` / `"no"` / `"n"` → skip without applying, then show the next fix
 5. After all fixes: show a final summary table of applied/skipped fixes
 
-## Step 5B: Execute Approved Changes (bulk)
+## Step 4B: Execute Approved Changes (bulk)
 
 1. Apply approved changes one after another without pausing
 2. After all changes: show a final summary table of applied/skipped fixes
 3. If a fix requires choices (e.g. naming), ask before proceeding
 
-## Step 6: Generate Tests (if requested)
+## Step 5: Generate Tests (if requested)
 
 If approved with `+tests`:
 1. Identify the project's test framework (from CLAUDE.md or folder structure)
@@ -236,19 +251,23 @@ If approved with `+tests`:
 3. Place in the correct path (e.g. `tests/`, `__tests__/`, `*.test.ts`)
 4. Propose tests in plan mode → wait for confirmation before creating files
 
-## Step 7: Offerta revisione Codex
+## Step 6: Offer a Codex deep review
 
-Al termine di tutti i fix (e degli eventuali test), mostrare **sempre** questo prompt:
+**Availability guard**: only offer this if the `codex:review` skill is actually available in the current
+environment (check the available-skills list). If it is **not** available, skip Step 6 entirely and just
+end with a short summary — never invoke a skill that does not exist.
+
+When available, after all fixes (and any tests), **always** show this prompt (rendered in the user's language):
 
 ---
-> Vuoi eseguire una revisione approfondita con **Codex**?
-> Rispondi `sì` per lanciare `/codex:review`, oppure `no` per terminare.
+> Do you want to run a deeper review with **Codex**?
+> Reply `yes` to launch `/codex:review`, or `no` to finish.
 ---
 
-- `sì` / `yes` / `s` / `ok` → invocare il tool `Skill` con `skill: "codex:review"`
-- `no` / `skip` / `nessuno` / `n` → terminare senza ulteriori azioni
+- `yes` / `sì` / `s` / `ok` → invoke the `Skill` tool with `skill: "codex:review"`
+- `no` / `skip` / `nessuno` / `n` → finish without further action
 
-> **Nota**: lo Step 7 va mostrato in **qualsiasi scenario di uscita** — fix applicati, fix saltati (opzione 4), o dopo i test.
+> **Note**: when Codex is available, Step 6 must be shown in **every exit scenario** — fixes applied, fixes skipped (option 4), or after tests.
 
 ## Rules
 
@@ -257,7 +276,7 @@ Al termine di tutti i fix (e degli eventuali test), mostrare **sempre** questo p
 - If no diff (scope 1) → analyze the whole file as "new code"
 - Keep suggestions concise; always cite file and specific line
 - For each issue: explain WHY (impact) and HOW (concrete fix)
-- Acknowledge what is done well (✅ section)
+- **Always** acknowledge what is done well — the ✅ Positives section is required and must list ≥1 genuine strength
 - **Tests**: propose only if logic is not covered; respect existing framework
 - Adapt the checklist to the language/framework (e.g. React → re-renders, Laravel → N+1, Blazor → dispose pattern)
 - **Language**: respond in the same language as the user's input

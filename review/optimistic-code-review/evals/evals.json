@@ -1,0 +1,21 @@
+{
+  "skill": "optimistic-code-review",
+  "description": "Binary scoring checklist + sample inputs to regression-test the optimistic-code-review skill. 6 yes/no checks; pass target >= 5.5/6.",
+  "checklist": [
+    { "id": "Q1", "name": "language", "check": "The ENTIRE response (incl. fix menu and final Codex offer) is in the same language as the user's input." },
+    { "id": "Q2", "name": "issue-location", "check": "Every issue cites a precise file:line location." },
+    { "id": "Q3", "name": "why-how", "check": "Every Critical/High/Medium issue has both WHY (impact) and HOW (concrete fix)." },
+    { "id": "Q4", "name": "optimistic-identity", "check": "The Positives section is present and non-empty (>= 1 genuine strength)." },
+    { "id": "Q5", "name": "graded-verdict", "check": "The A-F grade is consistent with the counts table, evaluated top-down with no ambiguity." },
+    { "id": "Q6", "name": "robustness", "check": "Preconditions are verified (git repo present; Codex offered only if codex:review is available) rather than assumed." }
+  ],
+  "samples": [
+    { "input": "review", "expect_scope": "menu shown (no scope given)" },
+    { "input": "revisiona il branch", "expect_scope": "Scope 2 — must ask base branch explicitly; respond in Italian" },
+    { "input": "check this file src/auth.ts", "expect_scope": "Scope 1 — path provided" },
+    { "input": "controlla modifiche", "expect_scope": "Scope 4 — uncommitted; respond in Italian" },
+    { "input": "review commit abc123", "expect_scope": "Scope 3 — hash provided" }
+  ],
+  "baseline_score": "3/6",
+  "optimized_score": "6/6"
+}

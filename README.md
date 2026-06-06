@@ -11,7 +11,7 @@ The recommended way to install these skills from GitHub is to use the official V
 npx skills@latest add marcoax/skills --list
 
 # Install a specific skill
-npx skills@latest add marcoax/skills --skill code-review
+npx skills@latest add marcoax/skills --skill optimistic-code-review
 
 # Install multiple skills
 npx skills@latest add marcoax/skills --skill react-review --skill task-spec-creator
@@ -20,10 +20,10 @@ npx skills@latest add marcoax/skills --skill react-review --skill task-spec-crea
 npx skills@latest add marcoax/skills --skill '*'
 
 # Install for a specific agent
-npx skills@latest add marcoax/skills --skill code-review --agent codex
+npx skills@latest add marcoax/skills --skill optimistic-code-review --agent codex
 
 # Install globally
-npx skills@latest add marcoax/skills --skill code-review --agent codex --global
+npx skills@latest add marcoax/skills --skill optimistic-code-review --agent codex --global
 ```
 
 Useful notes:
@@ -78,7 +78,7 @@ third-part/        third-party skills (not listed below)
 
 | Skill | Path | Description |
 | --- | --- | --- |
-| `code-review` | `review/code-review` | Multi-scope code review in plan mode (file, branch diff, commit, uncommitted). |
+| `optimistic-code-review` | `review/optimistic-code-review` | Constructive multi-scope code review in plan mode (file, branch diff, commit, uncommitted) — proposes fixes + highlights strengths. |
 | `goal-spec-review` | `review/goal-spec-review` | Pre-flight review of an implementation spec/plan for unclear, contradictory, or missing points before `/goal` execution. |
 | `pessimistic-code-review` | `review/pessimistic-code-review` | Adversarial code review using Independent Adversarial Verification (IAV); returns evidence-based PASS/FAIL. |
 | `react-review` | `review/react-review` | React 18/19 specific review: hooks, state, rendering, data fetching, component APIs. |
@@ -88,6 +88,8 @@ third-part/        third-party skills (not listed below)
 | Skill | Path | Description |
 | --- | --- | --- |
 | `autoresearch` | `skill-management/autoresearch` | Autonomously optimizes a skill through repeated evals, scoring, and prompt mutations. |
+| `find-skills` | `skill-management/find-skills` | Helps users discover and install agent skills based on what they want to do. |
+| `skill-creator` | `skill-management/skill-creator` | Creates and improves skills; runs benchmarks and variance analysis on description triggering. |
 | `skill-optimizer` | `skill-management/skill-optimizer` | Improves an existing skill through a guided, interactive diagnostic loop with checkpoints. |
 
 ### utilities/

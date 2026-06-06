@@ -10,7 +10,7 @@ description: >
   Triggers: "review React", "revisiona componente", "check this hook", "controlla questo componente",
   "React code review", "revisiona hook", ".tsx review", "review useEffect", "review JSX", "review props",
   "controlla hook", "review questo componente". Does NOT trigger on generic "review"/"revisiona" alone —
-  for generic reviews use code-review. Operates in PLAN MODE - proposes improvements, waits for approval.
+  for generic reviews use optimistic-code-review. Operates in PLAN MODE - proposes improvements, waits for approval.
 ---
 
 # React Review

@@ -10,7 +10,7 @@ description: >
   "verify this is complete", "check for gold-plating", "don't trust the dev",
   or when they want an honest verification of a PR/commit/diff before merge.
   Also use when the user suspects the implementation over-delivered or that
-  test results were manipulated. Always use this skill instead of code-review
+  test results were manipulated. Always use this skill instead of optimistic-code-review
   when the user explicitly wants a PASS/FAIL verdict rather than suggestions.
 user-invocable: true
 argument-hint: "[scope: file|diff|commit|branch]"
