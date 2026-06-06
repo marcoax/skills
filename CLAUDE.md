@@ -14,6 +14,7 @@ third-part/        third-party skills (not maintained here)
 ```
 
 Inside `personal/`:
+
 ```
 personal/deprecated/   skills no longer in use
 ```
@@ -27,6 +28,8 @@ personal/deprecated/   skills no longer in use
 ## README maintenance
 
 > **When you add, rename, or remove a skill, update `README.md` accordingly.**
+> **When you add, rename, or remove a skill, regenerate the manifest by running
+> `node scripts/generate-plugin.mjs` and commit `.claude-plugin/plugin.json`**
 
 Each entry in `README.md` must include the skill path and a one-line description.
 
