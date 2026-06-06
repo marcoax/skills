@@ -1,6 +1,6 @@
 ---
 name: laracms-code-review
-description: Review code changes against LaraCMS admin architecture guidelines and Laravel best practices. Use when the project context is clearly LaraCMS or Laravel admin work, or when the user mentions LaraCMS, admin architecture, guidelines/ADMIN_ARCHITECTURE.md, admin modules, resources, controllers, or other LaraCMS-specific conventions. Do not claim generic review requests outside clear LaraCMS context; use code-review for generic review and current-file-review only for explicit single-file review. Operates in PLAN MODE - proposes improvements, waits for approval before executing.
+description: Review code changes against LaraCMS admin architecture guidelines and Laravel best practices. Use when the project context is clearly LaraCMS or Laravel admin work, or when the user mentions LaraCMS, admin architecture, guidelines/ADMIN_ARCHITECTURE.md, admin modules, resources, controllers, or other LaraCMS-specific conventions. Do not claim generic review requests outside clear LaraCMS context; use optimistic-code-review for generic review and current-file-review only for explicit single-file review. Operates in PLAN MODE - proposes improvements, waits for approval before executing.
 ---
 
 # LaraCMS Code Review

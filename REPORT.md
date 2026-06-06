@@ -14,7 +14,7 @@
 | 1 | agent-md-creator | repo (merge) | Versione repo 9-step, più completa della local 7-step |
 | 2 | autoresearch | identica | Repo e local identiche |
 | 3 | blazor-localization | solo repo | Skill specifica AF project |
-| 4 | code-review | repo (merge) | Repo ha Step 5A/5B espliciti + UI italiana |
+| 4 | optimistic-code-review | repo (merge) | Repo ha Step 4A/4B espliciti + UI italiana (ex `code-review`) |
 | 6 | current-file-review | solo repo | Review file corrente in PLAN MODE |
 | 7 | design-an-interface | identica | "Design It Twice" pattern |
 | 8 | get-api-docs | identica | Fetch API docs con chub |
@@ -41,7 +41,7 @@
 
 1. **skill-optimizer**: copiato `evals/evals.json` da local → repo (3 test case QA)
 2. **agent-md-creator**: usata versione repo (Step 7-8 aggiuntivi per Reference Verification e STACK.md)
-3. **code-review**: usata versione repo (branching Step 5A/5B più chiaro + UI italiana)
+3. **optimistic-code-review** (ex `code-review`): usata versione repo (branching Step 4A/4B più chiaro + UI italiana)
 
 ---
 
@@ -54,7 +54,7 @@
 npx @marcoax/skills add grill-me
 
 # Installa più skill
-npx @marcoax/skills add grill-me tdd code-review
+npx @marcoax/skills add grill-me tdd optimistic-code-review
 
 # Lista tutte le skill disponibili
 npx @marcoax/skills list
