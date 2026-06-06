@@ -88,6 +88,8 @@ third-part/        third-party skills (not listed below)
 | Skill | Path | Description |
 | --- | --- | --- |
 | `autoresearch` | `skill-management/autoresearch` | Autonomously optimizes a skill through repeated evals, scoring, and prompt mutations. |
+| `find-skills` | `skill-management/find-skills` | Helps users discover and install agent skills based on what they want to do. |
+| `skill-creator` | `skill-management/skill-creator` | Creates and improves skills; runs benchmarks and variance analysis on description triggering. |
 | `skill-optimizer` | `skill-management/skill-optimizer` | Improves an existing skill through a guided, interactive diagnostic loop with checkpoints. |
 
 ### utilities/
