@@ -1,4 +1,0 @@
-interface:
-  display_name: "Message Log Analizer"
-  short_description: "Analizza trend traffico MQTT Carimali"
-  default_prompt: "Use $message-log-analizer to analyze a Carimali Packet received log and update message_trend.html."
