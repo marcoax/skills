@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Error Trend - Caricare Logs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        surface: {
+                            900: '#0a0a0f',
+                            800: '#12121a',
+                            700: '#1a1a26',
+                            600: '#222233',
+                        },
+                        accent: {
+                            indigo: '#6366f1',
+                            cyan: '#22d3ee',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e',
+                            emerald: '#10b981',
+                            violet: '#8b5cf6',
+                            sky: '#0ea5e9',
+                            orange: '#f97316',
+                            pink: '#ec4899',
+                            lime: '#84cc16',
+                            teal: '#14b8a6',
+                            fuchsia: '#d946ef',
+                        },
+                        grid: '#ffffff08',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: #0a0a0f;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #12121a 0%, #1a1a26 100%);
+            border: 1px solid rgba(99, 102, 241, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
+        }
+
+        .card:hover {
+            border-color: rgba(99, 102, 241, 0.15);
+            box-shadow: 0 0 40px rgba(99, 102, 241, 0.05);
+        }
+
+        .stat-pulse {
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes fade-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fade-up 0.6s ease-out forwards;
+            opacity: 0;
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0f; }
+        ::-webkit-scrollbar-thumb { background: #222233; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+
+        /* Table styling */
+        .data-table tbody tr {
+            transition: all 0.2s ease;
+        }
+        .data-table tbody tr:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .glow-text {
+            text-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(34, 211, 238, 0.03) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        #loading {
+            transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-200 relative">
+    <!-- Loading state -->
+    <div id="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-900">
+        <div class="text-center">
+            <div class="inline-block w-8 h-8 border-2 border-accent-indigo border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="font-mono text-sm text-gray-500">Loading error data...</p>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div id="app" class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Header -->
+        <header class="mb-10 animate-in">
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-2 h-2 rounded-full bg-accent-indigo stat-pulse"></div>
+                        <span class="font-mono text-xs text-gray-500 uppercase tracking-widest">Monitoring Dashboard</span>
+                    </div>
+                    <h1 class="text-4xl sm:text-5xl font-display font-800 tracking-tight text-white glow-text">
+                        Error Trend
+                    </h1>
+                    <p class="text-lg text-gray-500 font-light mt-1">Caricare Logs &middot; Symfony app.ERROR</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-mono text-xs text-gray-600">Last updated</p>
+                    <p id="last-update" class="font-mono text-sm text-accent-cyan">--</p>
+                    <p id="date-range" class="font-mono text-xs text-gray-600 mt-1">--</p>
+                </div>
+            </div>
+            <div class="mt-6 h-px bg-gradient-to-r from-accent-indigo/30 via-accent-cyan/10 to-transparent"></div>
+        </header>
+
+        <!-- Metric cards -->
+        <div id="metrics" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-in delay-1">
+            <div class="metric-card rounded-xl p-4">
+                <p class="font-mono text-xs text-gray-500 uppercase tracking-wider">Total Days</p>
+                <p id="m-days" class="text-3xl font-display font-700 text-white mt-1">--</p>
+            </div>
+            <div class="metric-card rounded-xl p-4">
+                <p class="font-mono text-xs text-gray-500 uppercase tracking-wider">Total Errors</p>
+                <p id="m-total" class="text-3xl font-display font-700 text-accent-rose mt-1">--</p>
+            </div>
+            <div class="metric-card rounded-xl p-4">
+                <p class="font-mono text-xs text-gray-500 uppercase tracking-wider">Daily Average</p>
+                <p id="m-avg" class="text-3xl font-display font-700 text-accent-amber mt-1">--</p>
+            </div>
+            <div class="metric-card rounded-xl p-4">
+                <p class="font-mono text-xs text-gray-500 uppercase tracking-wider">Trend</p>
+                <p id="m-trend" class="text-3xl font-display font-700 mt-1">--</p>
+            </div>
+        </div>
+
+        <!-- Chart 1: Daily totals -->
+        <div class="card rounded-2xl p-6 mb-6 animate-in delay-2">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-lg font-display font-600 text-white">Daily Error Volume</h2>
+                    <p class="text-sm text-gray-500 font-mono">Total errors per day</p>
+                </div>
+                <div class="w-3 h-3 rounded-full bg-accent-indigo/50"></div>
+            </div>
+            <div class="relative" style="height: 300px;">
+                <canvas id="chart-daily"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 2 & 3 row -->
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+            <!-- Chart 2: Stacked breakdown -->
+            <div class="card rounded-2xl p-6 animate-in delay-3">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-lg font-display font-600 text-white">Error Breakdown</h2>
+                        <p class="text-sm text-gray-500 font-mono">Stacked by error type</p>
+                    </div>
+                    <div class="w-3 h-3 rounded-full bg-accent-violet/50"></div>
+                </div>
+                <div class="relative" style="height: 320px;">
+                    <canvas id="chart-stacked"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Hourly distribution -->
+            <div class="card rounded-2xl p-6 animate-in delay-4">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-lg font-display font-600 text-white">Hourly Distribution</h2>
+                        <p class="text-sm text-gray-500 font-mono">Error pattern by hour</p>
+                    </div>
+                    <div class="w-3 h-3 rounded-full bg-accent-cyan/50"></div>
+                </div>
+                <div class="relative" style="height: 320px;">
+                    <canvas id="chart-hourly"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary table -->
+        <div class="card rounded-2xl p-6 animate-in delay-5">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-lg font-display font-600 text-white">Daily Summary</h2>
+                    <p class="text-sm text-gray-500 font-mono">Key metrics per day</p>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="data-table w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-white/5">
+                            <th class="text-left py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="text-right py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider">Total</th>
+                            <th class="text-left py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider">Top Error</th>
+                            <th class="text-right py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider">Count</th>
+                            <th class="text-right py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider">%</th>
+                            <th class="text-right py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider">vs Prev</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Last day detail table -->
+        <div class="card rounded-2xl p-6 mt-6 animate-in delay-5">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-lg font-display font-600 text-white">Error Detail — <span id="last-day-date">--</span></h2>
+                    <p class="text-sm text-gray-500 font-mono">All error types for the latest analyzed day</p>
+                </div>
+                <div class="w-3 h-3 rounded-full bg-accent-amber/50"></div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="data-table w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-white/5">
+                            <th class="text-right py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider w-10">#</th>
+                            <th class="text-left py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider">Error</th>
+                            <th class="text-right py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider w-20">Count</th>
+                            <th class="text-right py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider w-16">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="last-day-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-10 text-center">
+            <p class="font-mono text-xs text-gray-600">
+                Generated by <span class="text-gray-500">log-analyzer</span> skill &middot; Data from <span class="text-gray-500">error_history.json</span>
+            </p>
+            <p class="font-mono text-xs text-gray-600 mt-1">
+                HTML generated: <span id="generated-ts" class="text-gray-500">--</span>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Color palette for error types
+        const PALETTE = [
+            '#6366f1', '#22d3ee', '#f59e0b', '#f43f5e', '#10b981',
+            '#8b5cf6', '#0ea5e9', '#f97316', '#ec4899', '#84cc16',
+            '#14b8a6', '#d946ef', '#a78bfa', '#fb923c', '#34d399',
+            '#e879f9', '#38bdf8', '#fbbf24', '#fb7185', '#4ade80'
+        ];
+
+        // Chart.js global defaults
+        Chart.defaults.color = '#6b7280';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.04)';
+        Chart.defaults.font.family = "'JetBrains Mono', monospace";
+        Chart.defaults.font.size = 11;
+
+        const tooltipStyle = {
+            backgroundColor: 'rgba(18, 18, 26, 0.95)',
+            titleColor: '#fff',
+            bodyColor: '#d1d5db',
+            borderColor: 'rgba(99, 102, 241, 0.2)',
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { family: "'Outfit', sans-serif", weight: '600', size: 13 },
+            bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
+            displayColors: true,
+            boxPadding: 4,
+        };
+
+        function shortenError(msg, maxLen = 40) {
+            if (msg.length <= maxLen) return msg;
+            return msg.substring(0, maxLen - 1) + '\u2026';
+        }
+
+        // Embedded data — injected by analyze_log.py at generation time
+        const DATA = /*__ERROR_DATA__*/null;
+        const GENERATED_AT = /*__GENERATED_AT__*/null;
+
+        function updateMetrics(data) {
+            const days = data.days;
+            const totalErrors = days.reduce((s, d) => s + d.total, 0);
+            const avg = Math.round(totalErrors / days.length);
+
+            document.getElementById('m-days').textContent = days.length;
+            document.getElementById('m-total').textContent = totalErrors.toLocaleString();
+            document.getElementById('m-avg').textContent = avg.toLocaleString();
+
+            // Trend (last day vs previous)
+            const trendEl = document.getElementById('m-trend');
+            if (days.length >= 2) {
+                const last = days[days.length - 1].total;
+                const prev = days[days.length - 2].total;
+                const diff = last - prev;
+                const pct = ((diff / prev) * 100).toFixed(1);
+                if (diff < 0) {
+                    trendEl.textContent = `${pct}%`;
+                    trendEl.classList.add('text-accent-emerald');
+                } else {
+                    trendEl.textContent = `+${pct}%`;
+                    trendEl.classList.add('text-accent-rose');
+                }
+            } else {
+                trendEl.textContent = '--';
+                trendEl.classList.add('text-gray-500');
+            }
+
+            // Header dates
+            const lastDay = days[days.length - 1];
+            document.getElementById('last-update').textContent = GENERATED_AT || lastDay.date;
+            if (days.length > 1) {
+                document.getElementById('date-range').textContent = `${days[0].date} \u2192 ${lastDay.date}`;
+            } else {
+                document.getElementById('date-range').textContent = lastDay.date;
+            }
+        }
+
+        function buildDailyChart(data) {
+            const ctx = document.getElementById('chart-daily').getContext('2d');
+            const dates = data.days.map(d => d.date);
+            const totals = data.days.map(d => d.total);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Errors',
+                        data: totals,
+                        backgroundColor: totals.map((v, i) => {
+                            const isMax = v === Math.max(...totals);
+                            return isMax ? 'rgba(244, 63, 94, 0.7)' : 'rgba(99, 102, 241, 0.6)';
+                        }),
+                        borderColor: totals.map((v, i) => {
+                            const isMax = v === Math.max(...totals);
+                            return isMax ? '#f43f5e' : '#6366f1';
+                        }),
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        hoverBackgroundColor: 'rgba(99, 102, 241, 0.8)',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            ...tooltipStyle,
+                            callbacks: {
+                                title: items => items[0].label,
+                                label: item => `  ${item.raw.toLocaleString()} errors`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: {
+                                callback: v => v.toLocaleString()
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function buildStackedChart(data) {
+            const ctx = document.getElementById('chart-stacked').getContext('2d');
+            const dates = data.days.map(d => d.date);
+
+            // Collect all unique error types
+            const allErrors = new Set();
+            data.days.forEach(d => Object.keys(d.errors).forEach(e => allErrors.add(e)));
+            const errorTypes = [...allErrors];
+
+            // Sort by total count descending
+            const totalByType = {};
+            errorTypes.forEach(e => {
+                totalByType[e] = data.days.reduce((s, d) => s + (d.errors[e] || 0), 0);
+            });
+            errorTypes.sort((a, b) => totalByType[b] - totalByType[a]);
+
+            const datasets = errorTypes.map((err, i) => ({
+                label: shortenError(err, 50),
+                data: data.days.map(d => d.errors[err] || 0),
+                backgroundColor: PALETTE[i % PALETTE.length] + 'aa',
+                borderColor: PALETTE[i % PALETTE.length],
+                borderWidth: 1,
+                borderRadius: 2,
+            }));
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: { labels: dates, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                padding: 8,
+                                font: { size: 9 },
+                                usePointStyle: true,
+                                pointStyle: 'rectRounded',
+                            }
+                        },
+                        tooltip: {
+                            ...tooltipStyle,
+                            callbacks: {
+                                label: item => `  ${item.dataset.label}: ${item.raw}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { display: false },
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                        }
+                    }
+                }
+            });
+        }
+
+        function buildHourlyChart(data) {
+            const ctx = document.getElementById('chart-hourly').getContext('2d');
+            const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+
+            const lineColors = ['#6366f1', '#22d3ee', '#f59e0b', '#f43f5e', '#10b981', '#8b5cf6', '#0ea5e9'];
+
+            const datasets = data.days.map((day, i) => ({
+                label: day.date,
+                data: hours.map(h => day.hourly[h] || 0),
+                borderColor: lineColors[i % lineColors.length],
+                backgroundColor: lineColors[i % lineColors.length] + '15',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointHoverRadius: 6,
+                pointBackgroundColor: lineColors[i % lineColors.length],
+                pointBorderColor: '#12121a',
+                pointBorderWidth: 2,
+                borderWidth: 2,
+            }));
+
+            new Chart(ctx, {
+                type: 'line',
+                data: { labels: hours.map(h => h + ':00'), datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                boxHeight: 2,
+                                padding: 16,
+                                font: { size: 11 },
+                                usePointStyle: false,
+                            }
+                        },
+                        tooltip: {
+                            ...tooltipStyle,
+                            callbacks: {
+                                label: item => `  ${item.dataset.label}: ${item.raw} errors`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: {
+                                maxTicksLimit: 12,
+                                font: { size: 10 }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                        }
+                    }
+                }
+            });
+        }
+
+        function buildTable(data) {
+            const tbody = document.getElementById('table-body');
+            const days = data.days;
+
+            days.forEach((day, idx) => {
+                // Find top error
+                let topError = '--', topCount = 0;
+                Object.entries(day.errors).forEach(([err, count]) => {
+                    if (count > topCount) {
+                        topError = err;
+                        topCount = count;
+                    }
+                });
+                const pct = ((topCount / day.total) * 100).toFixed(1);
+
+                // vs previous
+                let vsHtml = '<span class="text-gray-600">--</span>';
+                if (idx > 0) {
+                    const prev = days[idx - 1].total;
+                    const diff = day.total - prev;
+                    const diffPct = ((diff / prev) * 100).toFixed(1);
+                    if (diff < 0) {
+                        vsHtml = `<span class="text-accent-emerald">\u25BC ${Math.abs(diffPct)}%</span>`;
+                    } else if (diff > 0) {
+                        vsHtml = `<span class="text-accent-rose">\u25B2 +${diffPct}%</span>`;
+                    } else {
+                        vsHtml = `<span class="text-gray-500">=</span>`;
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-white/5';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono text-white font-500">${day.date}</td>
+                    <td class="py-3 px-4 font-mono text-right text-white font-600">${day.total.toLocaleString()}</td>
+                    <td class="py-3 px-4 text-gray-400 max-w-xs truncate" title="${topError}">${shortenError(topError, 55)}</td>
+                    <td class="py-3 px-4 font-mono text-right text-gray-300">${topCount}</td>
+                    <td class="py-3 px-4 font-mono text-right text-accent-amber">${pct}%</td>
+                    <td class="py-3 px-4 font-mono text-right">${vsHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        const MQTT_TYPE_COLORS = {
+            'CONFIG':   { bg: 'rgba(99,102,241,0.15)',  border: '#6366f1', text: '#a5b4fc' },
+            'VENDING':  { bg: 'rgba(34,211,238,0.12)',  border: '#22d3ee', text: '#67e8f9' },
+            'DOSEINFO': { bg: 'rgba(245,158,11,0.12)',  border: '#f59e0b', text: '#fcd34d' },
+            'COMMAND':  { bg: 'rgba(16,185,129,0.12)',  border: '#10b981', text: '#6ee7b7' },
+            'ALARM':    { bg: 'rgba(244,63,94,0.12)',   border: '#f43f5e', text: '#fda4af' },
+        };
+
+        function mqttTypeBadge(type) {
+            const c = MQTT_TYPE_COLORS[type] || { bg: 'rgba(255,255,255,0.06)', border: '#4b5563', text: '#9ca3af' };
+            return `<span style="background:${c.bg};border:1px solid ${c.border};color:${c.text}" class="inline-block font-mono text-xs px-2 py-0.5 rounded">${type}</span>`;
+        }
+
+        function copyPayload(hex, btn) {
+            navigator.clipboard.writeText(hex).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'copied!';
+                btn.style.color = '#10b981';
+                setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+            });
+        }
+
+        function buildLastDayTable(data) {
+            const lastDay = data.days[data.days.length - 1];
+            document.getElementById('last-day-date').textContent = lastDay.date;
+
+            const payloads = lastDay.example_payloads || {};
+            const hasPayloads = Object.keys(payloads).length > 0;
+
+            // Update table header if payloads are available
+            if (hasPayloads) {
+                const thead = document.querySelector('#last-day-tbody').closest('table').querySelector('thead tr');
+                thead.innerHTML += `
+                    <th class="text-left py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider w-24">MQTT</th>
+                    <th class="text-left py-3 px-4 font-mono text-xs text-gray-500 uppercase tracking-wider">Example Payload</th>
+                `;
+            }
+
+            const sorted = Object.entries(lastDay.errors).sort((a, b) => b[1] - a[1]);
+            const tbody = document.getElementById('last-day-tbody');
+
+            sorted.forEach(([err, count], idx) => {
+                const pct = ((count / lastDay.total) * 100).toFixed(1);
+                const p = payloads[err];
+
+                let mqttCell = '';
+                let payloadCell = '';
+                if (hasPayloads) {
+                    if (p) {
+                        const truncated = p.hex.length > 48 ? p.hex.substring(0, 48) + '…' : p.hex;
+                        const escaped = p.hex.replace(/'/g, "\\'");
+                        mqttCell = `<td class="py-3 px-4">${mqttTypeBadge(p.type)}</td>`;
+                        payloadCell = `<td class="py-3 px-4">
+                            <span class="font-mono text-xs text-gray-400" title="${p.hex}">${truncated}</span>
+                            <button onclick="copyPayload('${escaped}', this)"
+                                class="ml-2 font-mono text-xs text-accent-indigo hover:text-white border border-white/10 hover:border-accent-indigo/50 rounded px-2 py-0.5 transition-colors">copy</button>
+                        </td>`;
+                    } else {
+                        mqttCell = `<td class="py-3 px-4 text-gray-600 font-mono text-xs">—</td>`;
+                        payloadCell = `<td class="py-3 px-4 text-gray-600 font-mono text-xs">—</td>`;
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-white/5';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono text-right text-gray-600">${idx + 1}</td>
+                    <td class="py-3 px-4 text-gray-300 font-mono text-xs break-all" title="${err.replace(/"/g, '&quot;')}">${err}</td>
+                    <td class="py-3 px-4 font-mono text-right text-white font-600">${count}</td>
+                    <td class="py-3 px-4 font-mono text-right text-accent-amber">${pct}%</td>
+                    ${mqttCell}${payloadCell}
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Init
+        (() => {
+            if (!DATA || !DATA.days || DATA.days.length === 0) {
+                document.getElementById('loading').innerHTML = `
+                    <div class="text-center">
+                        <p class="text-accent-rose font-mono text-sm mb-2">No data available</p>
+                        <p class="text-gray-600 font-mono text-xs mt-4">Run analyze_log.py to generate this page with embedded data</p>
+                    </div>
+                `;
+                return;
+            }
+            updateMetrics(DATA);
+            buildDailyChart(DATA);
+            buildStackedChart(DATA);
+            buildHourlyChart(DATA);
+            buildTable(DATA);
+            buildLastDayTable(DATA);
+
+            // Show generation timestamp
+            if (GENERATED_AT) {
+                document.getElementById('generated-ts').textContent = GENERATED_AT;
+            }
+
+            // Hide loading
+            const loading = document.getElementById('loading');
+            loading.style.opacity = '0';
+            setTimeout(() => loading.style.display = 'none', 500);
+        })();
+    </script>
+</body>
+</html>
