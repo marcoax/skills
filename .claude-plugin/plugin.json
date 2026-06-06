@@ -1,0 +1,25 @@
+{
+  "name": "marcoax-skills",
+  "skills": [
+    "./personal/blazor-localization",
+    "./personal/eracms-admin-module",
+    "./personal/md-to-blog-html",
+    "./personal/php-tdd-workflow",
+    "./personal/technical-debt-manager-php-laravel",
+    "./planning/planning-with-files",
+    "./planning/prd-to-plan",
+    "./planning/task-spec-creator",
+    "./planning/triage-issue",
+    "./review/goal-spec-review",
+    "./review/optimistic-code-review",
+    "./review/pessimistic-code-review",
+    "./review/react-review",
+    "./skill-management/autoresearch",
+    "./skill-management/find-skills",
+    "./skill-management/skill-creator",
+    "./skill-management/skill-optimizer",
+    "./skill-management/write-a-skill",
+    "./utilities/agent-md-creator",
+    "./utilities/optimize-prompt"
+  ]
+}
