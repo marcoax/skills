@@ -52,17 +52,7 @@ third-part/        third-party skills (not listed below)
 | --- | --- | --- |
 | `blazor-localization` | `personal/blazor-localization` | Automates localization for Blazor Razor files (Italian string detection, RESX key generation, code substitution). |
 | `eracms-admin-module` | `personal/eracms-admin-module` | Creates a config-driven CRUD module for the eraCms admin panel. |
-| `laracms-code-review` | `personal/laracms-code-review` | Code review focused on LaraCMS/Laravel admin architecture and best practices. |
-| `log-analyzer` | `personal/log-analyzer` | Analyzes Symfony `app.ERROR` log files for the Carimali/caricare project. |
-| `log-cleaner-process` | `personal/log-cleaner-process` | Deep-clean a Symfony log keeping only "Process already in progress" error blocks, filtered by serial number. |
-| `log-cleaner-process-context` | `personal/log-cleaner-process-context` | Cleans a log keeping process-error lines + context lines and generates an HTML report of pre-error commands. |
-| `message-log-analizer` | `personal/message-log-analizer` | Analyzes Carimali MQTT message logs and generates Packet-received traffic trend reports. |
-| `mqtt-decode` | `personal/mqtt-decode` | Decodes a raw Carimali MQTT binary payload (hex string) into a human-readable annotated table. |
-| `mqtt-error-fixer` | `personal/mqtt-error-fixer` | Analyzes MQTT pipeline errors from CariSupport and proposes surgical fixes. |
-| `mqtt-payload` | `personal/mqtt-payload` | Generates MQTT binary payloads (hex strings) for the Carimali coffee machine protocol. |
 | `php-tdd-workflow` | `personal/php-tdd-workflow` | Structured PHP/Laravel implementation workflow with task breakdown, TDD, verification, and progress tracking. |
-| `process-error-context-cleaner` | `personal/process-error-context-cleaner` | Lighter alternative to `log-cleaner-process`: keeps only process-error lines plus 3 lines of context. |
-| `recipe-analizer` | `personal/recipe-analizer` | Analyzes machine recipes by sub-product type and generates attribute frequency statistics (HTML/MD/CSV). |
 | `technical-debt-manager-php-laravel` | `personal/technical-debt-manager-php-laravel` | Technical debt analyst for PHP/Laravel: code health, maintainability, refactoring planning. |
 
 ### planning/
