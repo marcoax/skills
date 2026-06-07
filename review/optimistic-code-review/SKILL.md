@@ -1,16 +1,7 @@
 ---
 name: optimistic-code-review
 description: >
-  Constructive, generic code review tool — the optimistic counterpart to pessimistic-code-review.
-  Surfaces issues with WHY + HOW, acknowledges what is done well, and proposes fixes you approve before they are applied.
-  Supports multiple scopes: current file, branch diff, specific commit, uncommitted changes.
-  Triggers: "review", "code review", "revisiona", "controlla modifiche", "check this file", "review branch", "review commit".
-  Operates in PLAN MODE - proposes improvements, waits for approval before executing.
-  Do NOT use when a stack-specific or specialized review skill fits better:
-  use react-review for React 18/19 SPA projects (.tsx/.jsx files, React dependency, hooks/JSX/components review);
-  use laracms-code-review for LaraCMS or Laravel admin projects (presence of guidelines/ADMIN_ARCHITECTURE.md, Laravel structure);
-  use pessimistic-code-review when the user wants an adversarial PASS/FAIL verdict rather than constructive suggestions
-  ("pessimistic review", "strict review", "is this really done", "verify this is complete").
+  Constructive multi-scope code review that surfaces issues with WHY and HOW, highlights genuine strengths, and proposes fixes for approval before applying them. Use for reviewing a current file, branch diff, commit, or uncommitted changes when the user asks for a constructive review, code review, "revisiona", or "controlla modifiche". Prefer react-review for React projects, laracms-code-review for LaraCMS or Laravel admin projects, and pessimistic-code-review when the user requests an adversarial or strict PASS/FAIL verdict.
 ---
 
 # Optimistic Code Review
