@@ -80,48 +80,19 @@ Per ogni file nella lista:
 
 ## Procedura (singolo file)
 
+> Dettagli di lookup (tabelle path RESX, prefissi chiavi, sostituzioni Razor, direttive, template RESX) in [references/localization-details.md](references/localization-details.md).
+
 ### 1. Path RESX
 
-| Sorgente                    | RESX                                    |
-| --------------------------- | --------------------------------------- |
-| Pages/X/Y.razor             | Resources.Pages.X.Y.it.resx             |
-| Components/Gestione/Y.razor | Resources.Components.Gestione.Y.it.resx |
-| Components/X/Y.razor        | Resources.Components.X.Y.it.resx        |
-| Shared/Y.razor              | Resources.Shared.Y.it.resx              |
-
-**Path multi-livello**: ogni sottocartella diventa un segmento con punto:
-```
-Pages/Magazzino/Articoli/Giacenza/Giacenza.razor
-→ Resources/Pages.Magazzino.Articoli.Giacenza.Giacenza.it.resx
-```
+Determina il file RESX dal path sorgente. Mapping e regola path multi-livello → vedi [reference](references/localization-details.md#path-resx).
 
 ### 2. Rilevamento Stringhe IT
 
-**Cercare**: `àèéìòù`, parole IT (che, della, sono, stato)
-
-**Pattern**: `return "..."`, `>testo<`, `Title/Text/Placeholder="..."`, `testoModale = "..."` (seguito da `alertModal?.ShowAsync(testoModale)`)
-
-**Escludere**: `@localizer["..."]`, `@commonLabels["..."]`, URL, CSS, date format (`dd/MM/yyyy`), `"true/false/null"`, valori parametro usati in condizioni (es. `Mandante == "Pila in ingresso"` sono filtri dati, non etichette UI)
-
-**File da saltare**: file template/esempio (es. `TemplateTab.razor`) che contengono placeholder di sviluppo, non UI reale
-
-**Distinzione messaggi JS**:
-- `JS.InvokeVoidAsync("alert", ...)` → messaggi visibili utente, **localizzare**
-- `JS.InvokeVoidAsync("console.error", ...)` → log debug, **localizzare** (utile per supporto multilingua)
-- `JS.InvokeVoidAsync("console.log", ...)` → log tecnici, valutare se escludere
+Individua le stringhe italiane da localizzare. Pattern da cercare, esclusioni, file da saltare e distinzione messaggi JS → vedi [reference](references/localization-details.md#rilevamento-stringhe-it).
 
 ### 3. Generazione Chiavi
 
-IT→EN, PascalCase, max 100 char
-
-| Prefisso | Uso       |
-| -------- | --------- |
-| Btn*     | Pulsanti  |
-| Err*     | Errori    |
-| Lbl*     | Etichette |
-| Msg*     | Messaggi  |
-| Title*   | Titoli    |
-| Col*     | Colonne   |
+IT→EN, PascalCase, max 100 char. Tabella prefissi (Btn/Err/Lbl/Msg/Title/Col) → vedi [reference](references/localization-details.md#generazione-chiavi).
 
 ### 4. Controllo Duplicati (ordine)
 
@@ -160,55 +131,15 @@ Esempio risposta utente: `1,3,5` oppure `nessuna` oppure `tutte`
 
 ### 6. Sostituzioni Razor
 
-| Contesto     | Prima         | Dopo                                     |
-| ------------ | ------------- | ---------------------------------------- |
-| Return       | `return "X";` | `return localizer["K"].Value;`           |
-| Markup       | `>X<`         | `>@localizer["K"]<`                      |
-| @code        | `"X"`         | `localizer["K"].Value`                   |
-| Attributo    | `Title="X"`   | `Title="@localizer["K"]"`                |
-| HTML interno | `<i>X</i>`    | `@((MarkupString)localizer["K"].Value)`  |
-| Interpolata  | `$"X {v}"`    | `string.Format(localizer["K"].Value, v)` |
-
-**Messaggi JavaScript con parametri**:
-```csharp
-// Prima
-await JS.InvokeVoidAsync("alert", $"Errore: {ex.Message} - {ex.StackTrace}");
-// Dopo (RESX: <value>Errore: {0} - {1}</value>)
-await JS.InvokeVoidAsync("alert", string.Format(Localizer["ErrKey"], ex.Message, ex.StackTrace));
-
-// Per stringhe semplici senza parametri
-await JS.InvokeVoidAsync("alert", Localizer["ErrKey"].Value);
-```
-
-**CommonLabels**: `commonLabels["Key"]` invece di `localizer["Key"]`
-
-**Stringhe ripetute nello stesso file**: quando la stessa etichetta appare più volte (es. "ID Pallet:" 2 volte), usare `replace_all=true` nell'Edit tool per sostituire tutte le occorrenze in un colpo solo, evitando errori "Found N matches".
+Applica le sostituzioni secondo il contesto (markup, attributo, @code, interpolata, HTML, messaggi JS). Tabella contesti, esempi JS con parametri, uso CommonLabels e nota `replace_all` per stringhe ripetute → vedi [reference](references/localization-details.md#sostituzioni-razor).
 
 ### 7. Direttive (se mancanti)
 
-```razor
-@using Microsoft.Extensions.Localization
-@using BlazorWCSWebUI.Resources
-@inject IStringLocalizer<NomeClasse> localizer
-@inject IStringLocalizer<CommonLabels> commonLabels
-```
-
-`NomeClasse` = nome file senza estensione
-
-**Localizer condiviso**: alcuni componenti usano il localizer di un'altra classe (es. `DettagliMissioneL1Semplificate` usa `IStringLocalizer<DettagliMissione>`). In questo caso:
-- Le chiavi vanno nel RESX della classe referenziata (es. `DettagliMissione.it.resx`)
-- Se il componente non ha alcun `@inject IStringLocalizer`, aggiungere using + inject con la classe corretta
-- Verificare sempre quale `IStringLocalizer<T>` è già in uso prima di aggiungere direttive
+Aggiungi `@using`/`@inject` se assenti. Blocco direttive e regola del localizer condiviso (componente che usa il localizer di un'altra classe) → vedi [reference](references/localization-details.md#direttive-se-mancanti).
 
 ### 8. Nuovo RESX
 
-Template: copiare `Resources/Resources.CommonLabels.it.resx`, svuotare `<data>`, aggiungere:
-
-```xml
-<data name="Key" xml:space="preserve">
-  <value>Testo italiano</value>
-</data>
-```
+Crea il RESX se non esiste: copiare `Resources/Resources.CommonLabels.it.resx`, svuotare `<data>`, aggiungere le chiavi. Template → vedi [reference](references/localization-details.md#nuovo-resx).
 
 ### 9. Validazione
 
