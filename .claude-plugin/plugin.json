@@ -16,9 +16,6 @@
     "./review/react-review",
     "./skill-management/autoresearch",
     "./skill-management/find-skills",
-    "./skill-management/skill-creator",
-    "./skill-management/skill-optimizer",
-    "./skill-management/write-a-skill",
     "./utilities/agent-md-creator",
     "./utilities/optimize-prompt"
   ]
