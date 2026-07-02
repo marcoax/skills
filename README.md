@@ -1,6 +1,6 @@
 # marcoax/skills
 
-Collection of reusable skills for coding agents. This repository contains my own (non third-party) skills, organized by purpose. Third-party skills are kept separately under `third-part/` and are not listed here.
+Collection of reusable skills for coding agents. This repository contains my own (non third-party) skills, organized by purpose. Skills under `personal/` (domain-specific to my own stack) and `third-part/` (third-party) are kept separately and are not listed here — browse those directories directly.
 
 ## Installation
 
@@ -36,7 +36,7 @@ Useful notes:
 ## Repository structure
 
 ```text
-personal/          domain-specific skills (Carimali, MQTT, PHP/Laravel, Blazor)
+personal/          domain-specific skills, tied to my own stack (browse directly, not listed below)
 planning/          planning, spec, triage workflows
 review/            code review variants
 skill-management/  meta-skills to author and tune other skills
@@ -46,21 +46,11 @@ third-part/        third-party skills (not listed below)
 
 ## Available skills
 
-### personal/
-
-| Skill | Path | Description |
-| --- | --- | --- |
-| `blazor-localization` | `personal/blazor-localization` | Automates localization for Blazor Razor files (Italian string detection, RESX key generation, code substitution). |
-| `eracms-admin-module` | `personal/eracms-admin-module` | Creates a config-driven CRUD module for the eraCms admin panel. |
-| `php-tdd-workflow` | `personal/php-tdd-workflow` | Structured PHP/Laravel implementation workflow with task breakdown, TDD, verification, and progress tracking. |
-| `technical-debt-manager-php-laravel` | `personal/technical-debt-manager-php-laravel` | Technical debt analyst for PHP/Laravel: code health, maintainability, refactoring planning. |
-
 ### planning/
 
 | Skill | Path | Description |
 | --- | --- | --- |
 | `planning-with-files` | `planning/planning-with-files` | Manus-style file-based planning (`task_plan.md`, `findings.md`, `progress.md`) for complex multi-step work. |
-| `prd-to-plan` | `planning/prd-to-plan` | Turns a PRD into a multi-phase implementation plan using tracer-bullet vertical slices. |
 | `task-spec-creator` | `planning/task-spec-creator` | Generates a structured `TASK_SPEC.md` for a single implementation task through developer interview. |
 | `triage-issue` | `planning/triage-issue` | Triages a bug by exploring the codebase to find root cause, then creates a GitHub issue with a TDD-based fix plan. |
 
@@ -89,13 +79,13 @@ third-part/        third-party skills (not listed below)
 
 ## Compatibility notes
 
-Several skills under `personal/` are tied to specific stacks or projects (Carimali coffee machines, Symfony, PHP/Laravel, LaraCMS, Blazor) and may not be useful outside those contexts. Always read the related `SKILL.md` before adopting one in a different environment.
+Skills under `personal/` are tied to specific stacks or projects (PHP/Laravel, LaraCMS, Blazor, and other private setups) and may not be useful outside those contexts. They are not listed above — browse the `personal/` directory and always read the related `SKILL.md` before adopting one in a different environment.
 
 ## Local development
 
 To inspect or modify a skill:
 
-1. open its directory (e.g. `personal/mqtt-decode/`)
+1. open its directory (e.g. `review/react-review/`)
 2. read `SKILL.md` first
 3. check any subdirectories such as `references/`, `steps/`, `templates/`, `scripts/`, or `assets/`
 

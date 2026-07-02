@@ -7,7 +7,6 @@
     "./personal/php-tdd-workflow",
     "./personal/technical-debt-manager-php-laravel",
     "./planning/planning-with-files",
-    "./planning/prd-to-plan",
     "./planning/task-spec-creator",
     "./planning/triage-issue",
     "./review/goal-spec-review",
