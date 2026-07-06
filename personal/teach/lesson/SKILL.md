@@ -1,6 +1,6 @@
 ---
-name: teach-lesson
-description: Menu launcher for this repo's Laravel 12→13 lessons. A thin wrapper around /teach — it lists the lessons in lessons/, proposes the first not-yet-done one, and on the learner's choice hands off to /teach for that lesson. Read-only on progress (never marks completion). Use whenever the learner wants to start or continue the course, or asks "do lesson 3", "facciamo la lezione 3", "what's the next lesson", "qual è la prossima lezione", "resume", "riprendiamo", "continue", "show me the lessons", "mostrami le lezioni", "teach-lesson" — even without naming a specific lesson file.
+name: lesson
+description: Menu launcher for this repo's Laravel 12→13 lessons. A thin wrapper around /teach — it lists the lessons in lessons/, proposes the first not-yet-done one, and on the learner's choice hands off to /teach for that lesson. Read-only on progress (never marks completion). Use whenever the learner wants to start or continue the course, or asks "do lesson 3", "facciamo la lezione 3", "what's the next lesson", "qual è la prossima lezione", "resume", "riprendiamo", "continue", "show me the lessons", "mostrami le lezioni", "lesson", "teach-lesson" (its former name) — even without naming a specific lesson file.
 argument-hint: "(optional) lesson number or slug, e.g. 3 or queue-fail-on-exception"
 ---
 
@@ -18,6 +18,12 @@ delegate the whole teaching session to `/teach`.
 4. **The active path is baseline-filtered.** Read `course_baseline_major` from
    `learning-config.md` (default `12`) and filter learner-facing lesson selection from
    each lesson's `> Version:` metadata, never from file order or numeric prefix.
+5. **The lesson runs in the configured output style (ADR-0020).** Read `output_style`
+   from `learning-config.md` (default `Learning`) and apply it *behaviorally* for the
+   whole teaching session after hand-off: with `Learning`, when generated code involves
+   a design decision, set up the scaffolding and leave the key 2–10 lines to the learner
+   as a single `TODO(human)` block. This scope is the lesson session only — never write
+   the style into `.claude/settings*.json`, and impose nothing outside lessons.
 
 ## Flow
 
@@ -166,7 +172,9 @@ Resolve the exact path, then **run `/teach` in-session — do not ask the learne
 **read `~/.agents/skills/teach/SKILL.md` and execute its flow** for the resolved lesson file
 (main-sequence `lessons/<NN-slug>.md` or version-pure `lessons/<x.y.z>.md`), treating this repo
 as the teaching workspace. From there `/teach` owns the session (practice mode, scaffolding,
-`TODO(human)`, quiz).
+`TODO(human)`, quiz), **conducted in the `output_style` from `learning-config.md`
+(principle 5, ADR-0020)** — with `Learning`, Learn by Doing stays active until the lesson
+session ends.
 
 **The session stays on the current git branch regardless of `auto_branch`** — that flag is
 consulted only by `/lesson-update`; a teaching session's output is all git-ignored, so a
