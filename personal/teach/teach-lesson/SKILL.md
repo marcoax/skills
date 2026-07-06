@@ -12,8 +12,12 @@ delegate the whole teaching session to `/teach`.
 1. **Read-only on progress.** Never write completion state. Marking a lesson done belongs to
    the lesson lifecycle (`CLAUDE.md` → *Lesson lifecycle*: `progress.json` + learning record).
 2. **One final action: hand off to `/teach`.** Build the menu, resolve the lesson, then
-   execute `/teach` for it **in-session** — never ask the learner to type a command. Nothing else.
+   execute `/teach` for it **in-session** — never ask the learner to type a command. The
+   course-page warm-up (step 5) is a best-effort side step; the hand-off stays the final act.
 3. **Lessons are whatever is on disk**, never a hardcoded list.
+4. **The active path is baseline-filtered.** Read `course_baseline_major` from
+   `learning-config.md` (default `12`) and filter learner-facing lesson selection from
+   each lesson's `> Version:` metadata, never from file order or numeric prefix.
 
 ## Flow
 
@@ -29,6 +33,20 @@ ls lessons/[0-9]*.[0-9]*.[0-9]*.md 2>/dev/null | sort -V  # extra: version-pure,
 Exclude `_template.md`, `README.md`, and the rendered `.html` from both. Order the main sequence
 by numeric prefix; order the version-pure files by semantic version. If `lessons/` is missing or
 both globs are empty, stop and say so — you are probably not at the repo root.
+
+For every candidate lesson, read the first `> Version:` line from the `.md` file and parse the
+Laravel major version from that metadata. Examples: `Laravel 12.x, through 12.19`, `12.4`, and
+`12.45 · 12.46` are major `12`; `13.0`, `13.0 → 13.8`, and `13.17.0` are major `13`.
+
+Read `course_baseline_major` from `learning-config.md`. If the file is absent, malformed, or the
+field is absent, default to `12`. Supported choices are static: `12` and `13`. Before computing
+defaults, rendering a menu, or resolving direct requests, keep only lessons whose parsed major is
+greater than or equal to the baseline. This hides 12.x lessons for baseline `13` without deleting
+files or touching `progress.json`.
+
+If a direct argument resolves to a lesson outside the active baseline, stop with a short message
+that the requested lesson is outside the active course path. Do **not** print the hidden lesson's
+title, path, contents, or run `/teach` for it.
 
 ### 2. Read progress (read-only)
 
@@ -52,16 +70,16 @@ not-done is `01`). Don't block, don't ask. Never write to `progress.json`.
 
 ### 3. First not-done
 
-The first lesson, in numeric order, whose id is not `done`, **from the main sequence only**. This
-is the menu default. Version-pure lessons never displace it as the recommended default — they're
-surfaced as extra options, not the spine of the course.
+The first active lesson, in numeric order, whose id is not `done`, **from the baseline-filtered
+main sequence only**. This is the menu default. Version-pure lessons never displace it as the
+recommended default — they're surfaced as extra options, not the spine of the course.
 
 ### 4. Show the menu
 
-**One flat list, no main-vs-extra split.** The first not-done main-sequence lesson goes on top
-as the recommended default; below it, every lesson appears in a single sequence — main-sequence
-first in numeric order, then version-pure lessons appended in version order. Same row shape for
-both families: `id · title (version) · status`.
+**One flat list, no main-vs-extra split.** The first not-done active main-sequence lesson goes on
+top as the recommended default; below it, every active lesson appears in a single sequence —
+main-sequence first in numeric order, then version-pure lessons appended in version order. Same row
+shape for both families: `id · title (version) · status`.
 
 - **Display id, continuous across both families.** Main-sequence lessons keep their existing
   `01`…`12`. Version-pure lessons get the **next integers in sequence** — `13`, `14`, `15`… —
@@ -76,10 +94,10 @@ both families: `id · title (version) · status`.
 - **Version**, for every row: read it from the `> Version:` line in the lesson's frontmatter/prose
   (e.g. `12.x, through 12.19` → show as `12.x–12.19`; a single version stays as-is). This is what
   lets the learner see the Laravel release(s) a lesson maps to at a glance, main-sequence or extra.
-- **Title**, for version-pure lessons: read the `title:` frontmatter field (a kebab-case slug,
-  written once at generation time by `/lesson-update` — see its step 5). Never re-derive it by
-  parsing the `# Lesson X.Y — <title>` heading here; the frontmatter is the single source of
-  truth. Never show a bare version number as the row label.
+- **Title**, for version-pure lessons: show a human-readable title, matching the course page.
+  Prefer the `LESSONS` entry in `index.html` for that version; if absent, read the title from
+  the `# Lesson X.Y — <title>` heading. Do not show the kebab-case frontmatter slug as the
+  learner-facing label; it remains metadata for generation/state, not the menu title.
 
 Use the learner's `language.chat` from `learning-config.md` (default English) for the menu text.
 
@@ -112,7 +130,36 @@ Which lesson? (default: next, 10)
 Prefer tappable options when available (first option = next/default). Otherwise accept a
 number, a slug, a version string, or "next"/Enter for the default.
 
-### 5. Hand off to /teach
+### 5. Start the course page (best-effort, never blocking)
+
+Once the lesson is resolved, warm up the course page (`index.html`, the single served
+page — ADR-0013/0015) so the learner follows the lesson in the browser while `/teach`
+works. **Fail-soft at every step: if anything is missing or fails, skip silently and
+proceed to the hand-off — the page is a companion, never a prerequisite.**
+
+1. **Already serving?** Probe once: `curl -s -o /dev/null -w '%{http_code}' -m 1
+   http://localhost:8000/`. A `200` means a server is already up — skip to 3.
+2. **Start a server** from the repo root, in the background, with whatever is on this
+   machine — check availability first (`command -v`), don't assume:
+   - `php -S localhost:8000 scripts/progress-server.php` (first choice: a Laravel
+     learner has PHP; the router enables the page's manual status marking — ADR-0018), else
+   - `python3 -m http.server 8000` (or `python` on systems without `python3`).
+   - Neither available, or the port is taken by something that isn't serving this repo →
+     skip the page entirely, mention it in one line, move on.
+3. **Check the lesson HTML exists** before opening anything: `lessons/<slug>.html` (the
+   same basename used in the URL fragment). Two cases:
+   - **Exists** → open the browser at `http://localhost:8000/#<slug>` now, using the
+     platform's opener: `open` (macOS), `xdg-open` (Linux), `start` (Windows). No opener →
+     just print the URL for the learner to click. This is the common case for a
+     re-run/already-done lesson (its `.html` was written in a prior session).
+   - **Missing** → **do not open the browser yet.** The page would just poll an empty
+     hash and look broken. Instead print the URL as plain text
+     (`http://localhost:8000/#<slug>`) so the learner can open it by hand whenever they
+     want, and note that it'll be opened automatically the moment the lesson HTML exists.
+     Remember this pending state for step 6 — open exactly once, the first time the file
+     appears.
+
+### 6. Hand off to /teach
 
 Resolve the exact path, then **run `/teach` in-session — do not ask the learner to type it.**
 `/teach` carries `disable-model-invocation`, so the Skill tool can't auto-call it; instead
@@ -121,21 +168,38 @@ Resolve the exact path, then **run `/teach` in-session — do not ask the learne
 as the teaching workspace. From there `/teach` owns the session (practice mode, scaffolding,
 `TODO(human)`, quiz).
 
+**The session stays on the current git branch regardless of `auto_branch`** — that flag is
+consulted only by `/lesson-update`; a teaching session's output is all git-ignored, so a
+per-lesson branch would be guaranteed empty (ADR-0017). Never cut a branch at lesson start.
+If a tracked file needs touching mid-session (a drift fix in a brief, an asset edit), propose
+a branch for that change at that moment — manually, not via `auto_branch`.
+
+**If step 5 deferred the browser open** (the lesson `.html` didn't exist yet), keep
+following `/teach`'s flow as normal; the moment `/teach` writes `lessons/<slug>.html` for
+the first time (its usual generation step), open the browser then — same opener logic as
+step 5, fire once. If the file is still missing when the session ends (e.g. the learner
+stops before generation), leave it deferred; nothing to clean up, the learner already has
+the URL from step 5.
+
 ## Optional argument
 
 - **No argument** → menu above.
 - **Number ≤ 12, or slug** (`3`, `03`, `queue-fail-on-exception`) → skip the menu, resolve the
-  lesson by its `NN-` prefix or slug, hand off directly.
+  lesson by its `NN-` prefix or slug, then apply the baseline filter. If the resolved lesson is
+  hidden by `course_baseline_major`, stop as outside the active course path and do not hand off.
   - The number is the **file prefix**, not a list position: `3` and `03` both resolve to
     `lessons/03-*.md`.
   - If that lesson is already `done`, warn once (`⚠️ Lesson 03 is already done — re-running.`)
     then hand off anyway. No extra confirmation.
 - **Number > 12** (`13`, `14`…) → this is the **display id**, not a filename: recompute the
-  version-ordered list of version-pure lessons (step 1/4) and take the `(number - 12)`-th entry.
+  baseline-filtered, version-ordered list of version-pure lessons (step 1/4) and take the
+  `(number - 12)`-th entry.
   `13` is always the earliest not-yet-superseded version-pure lesson, `14` the next, etc. — never
   assume it maps to a file literally named `13-*.md` (it doesn't; those don't exist).
-- **Version string** (`13.17`, `13.17.0`) → resolve to the matching `lessons/<x.y.z>.md` by
-  prefix match on the version (`13.17` matches `13.17.0.md`), hand off directly.
+- **Version string** (`13.17`, `13.17.0`) → resolve to the matching active
+  `lessons/<x.y.z>.md` by prefix match on the version (`13.17` matches `13.17.0.md`), hand off
+  directly. If a version string matches only a hidden lesson, stop as outside the active course
+  path.
   - Both paths above share the **same already-done warn-then-proceed rule**: warn once, then
     hand off anyway. No extra confirmation.
   - No match → fall back to the menu.

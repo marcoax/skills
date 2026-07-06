@@ -39,22 +39,24 @@ the template default.
 | 2 | `output_style` | `Learning` | **Learning** = Learn by Doing (scaffold + `TODO(human)`, recommended). Other choices: `Explanatory` (teaches while writing — full code plus didactic notes) or `default` (concise, no pedagogy). Written to `settings.local.json`, **not** to `learning-config.md`, as the enforcement point. |
 | 3 | `reference_project` | *(no default — ask)* | Absolute path to the real codebase assessed each lesson. If they have none, store a placeholder and steer `practice_default` to `concepts-only`. |
 | 4 | `model` | `claude-opus-4-8` (+ Fast mode) | **Advisory only** — a file can't force the CLI model. Just record it. |
-| 5 | `practice_default` | `concepts-only` | `concepts-only` \| `throwaway-app` \| `reference-project`. |
-| 6 | `quiz_format` | `recall` | `recall` (open question → accordion answer) \| `multiple-choice`. |
-| 7 | `deep_dive` | `on` | Offer the optional "want to go deeper?" invite at lesson end. `on` \| `off`. |
-| 8 | `branch_convention` | `one branch per lesson, e.g. lesson-NN-<slug>` | Free text; the **branch-name pattern**. Consulted only when `auto_branch` is `on`. |
-| 9 | `auto_branch` | `on` (base `main`) | Ask whether each lesson should open a branch **from `main`**. `on` \| `off`. When `on`, the branch name follows `branch_convention` (the learner may override the pattern); when `off`, work stays on the current branch. `/lesson-init` only **records** the choice — it never creates the branch; `/teach` cuts it at lesson start. |
-| 10 | `auto_check_new_lessons` | `on` | Ask whether to auto-check for newer Laravel releases **in the background at lesson completion** (ADR-0007). `on` \| `off`. When `on`, finishing a lesson fires a read-only discovery sub-agent that proposes new lessons (never generates them); when `off`, nothing fires and `/lesson-update` stays manually invocable. Fail-soft: a failed check is skipped silently. |
+| 5 | `course_baseline_major` | `12` | Static choices only: `12` \| `13`. `12` preserves the full authored Laravel 12 -> 13 path; `13` starts the active learner-facing path at Laravel 13 and hides 12.x material. This is not a generic `from_major -> to_major` engine. |
+| 6 | `practice_default` | `concepts-only` | `concepts-only` \| `throwaway-app` \| `reference-project`. |
+| 7 | `quiz_format` | `recall` | `recall` (open question → accordion answer) \| `multiple-choice`. |
+| 8 | `deep_dive` | `on` | Offer the optional "want to go deeper?" invite at lesson end. `on` \| `off`. |
+| 9 | `branch_convention` | `one branch per generated brief, e.g. lesson-<x.y.z>-<slug>` | Free text; the **branch-name pattern**. Consulted only by `/lesson-update`, when `auto_branch` is `on` (ADR-0017). |
+| 10 | `auto_branch` | `on` (base `main`) | Ask whether `/lesson-update` should open a branch **from `main`** for each generated brief. `on` \| `off`. When `on`, the branch name follows `branch_convention` (the learner may override the pattern); when `off`, briefs land on the current branch. Consulted **only by `/lesson-update`** — teaching sessions never cut branches (their output is all git-ignored, ADR-0017). `/lesson-init` only **records** the choice — it never creates the branch. |
+| 11 | `auto_check_new_lessons` | `on` | Ask whether to auto-check for newer Laravel releases **in the background at lesson completion** (ADR-0007). `on` \| `off`. When `on`, finishing a lesson fires a read-only discovery sub-agent that proposes new lessons (never generates them); when `off`, nothing fires and `/lesson-update` stays manually invocable. Fail-soft: a failed check is skipped silently. |
 
 ## Step 3 — Write `learning-config.md`
 
 Render the answers into the YAML block, preserving the structure and the explanatory
 comments from `learning-config.example.md` (the file is documentation outside the block,
 YAML inside). Keep the `# --- Essentials ---` / `# --- Pedagogy ---` sections. Persist
-`auto_branch` (with its base branch) next to `branch_convention` in the pedagogy section.
+`course_baseline_major` next to the language block in Essentials. Persist `auto_branch`
+(with its base branch) next to `branch_convention` in the pedagogy section.
 
 Also write the `# --- Lesson updates (/lesson-update) ---` section. Only
-`auto_check_new_lessons` comes from the interview (question #10); the rest is **seeded
+`auto_check_new_lessons` comes from the interview (question #11); the rest is **seeded
 state**, not preferences — copy the defaults verbatim from `learning-config.example.md`:
 
 - `lesson_sources` — the **structured** source list, one `transport` per source (+ optional

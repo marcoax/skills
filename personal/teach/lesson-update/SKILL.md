@@ -2,6 +2,7 @@
 name: lesson-update
 description: Discover new Laravel releases from the editorial sources in learning-config.md (Laravel News, Laravel Daily), propose one lesson per new version, and — on the learner's accept — generate it into lessons/ ready for a PR. Use when the learner wants to check for new Laravel versions / lessons, asks "are there new lessons?", "controlla nuove versioni", "update the lessons", "any Laravel releases I'm missing?", or runs /lesson-update. Also the discovery engine the lesson-completion auto-check (ADR-0007) runs in the background.
 argument-hint: "(no arguments — it scans, proposes, and on accept generates)"
+model: claude-sonnet-5
 ---
 
 Discover Laravel releases newer than the existing lessons cover, propose **one lesson per new
@@ -37,7 +38,10 @@ Read these fields from `learning-config.md` at the repo root (authoritative per 
   generation. Always available regardless of `auto_check_new_lessons`.
 - **Auto background discovery** (ADR-0007): the lesson lifecycle gate (ADR-0004), when
   `auto_check_new_lessons: on`, spawns a **read-only** sub-agent that runs **steps 1–3 only** and
-  reports "N candidates → view now or later?". 
+  reports "N candidates → view now or later?". **Spawn it with `model: sonnet`** — the scan is
+  procedural, so a session-model (Opus/Fable) run wastes tokens; but don't drop below Sonnet:
+  advancing `laravel_version_scanned` is irreversible, and a misread there silently skips a
+  release forever.
 
 **Hard boundary (ADR-0007): background discovers and proposes; it never generates.** The
 background path may advance `laravel_version_scanned` / `last_checked`, and **must not** write
@@ -89,6 +93,11 @@ relevance questions) and ask **accept** or **skip**. The human absorbs the resid
 two blogs naming one change differently, a thin release. One version → one proposal.
 
 ### 5. Generate the accepted ones
+**Branch first (ADR-0017):** if `auto_branch: on` in `learning-config.md`, cut a fresh
+branch from `auto_branch_base`, one per generated brief, named per `branch_convention`;
+if `off`, write on the current branch. This flag is consulted **only here** — teaching
+sessions never cut branches.
+
 Write each accepted lesson into `lessons/` from `lessons/_template.md`:
 - **Filename: version-pure**, full patch level, e.g. `13.17-….md`. **No topic slug** (a release
   aggregates many changes — picking one would be arbitrary). The version prefix deliberately breaks
@@ -107,6 +116,14 @@ Write each accepted lesson into `lessons/` from `lessons/_template.md`:
 - **Generate in default mode, never Learn by Doing (ADR-0009).** Lesson generation is *content
   authoring*, not co-writing code on a design decision — so the `Learning` output style does **not**
   apply here. Emit **complete** briefs: never a `TODO(human)` block or placeholder line.
+- **Register the lesson in the course page (ADR-0013/0015):** append one entry to the
+  single `LESSONS` array in `index.html`, keeping version order (release lessons sit after
+  the core lessons; the display number is positional, computed by the page) —
+  `{ key:"<x.y.z>", slug:"<x.y.z>", ver:"<x.y>", title:"<human-readable title>" }`. `key`
+  is the `progress.json` key (the version string, ADR-0006); `slug` is the HTML basename
+  (`lessons/<x.y.z>.html`, written later by `/teach`); `title` is the human-readable lesson
+  title (the text of the `# Lesson X.Y — <title>` heading, not the kebab-case frontmatter
+  slug). The sidebar shows the lesson immediately and loads the page when it appears.
 
 ### 6. Update state (only for what actually happened)
 - Advance `laravel_version_scanned` to the highest version examined.
