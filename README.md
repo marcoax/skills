@@ -58,6 +58,7 @@ third-part/        third-party skills (not listed below)
 
 | Skill | Path | Description |
 | --- | --- | --- |
+| `advanced-code-review` | `review/advanced-code-review` | Evidence-first multi-scope review (file, uncommitted, commit, branch): independent verification, frozen PASS/PARTIAL/FAIL verdict, then minimum remediation on approval; chat / Markdown / HTML output from one canonical record. |
 | `optimistic-code-review` | `review/optimistic-code-review` | Constructive multi-scope code review in plan mode (file, branch diff, commit, uncommitted) — proposes fixes + highlights strengths. |
 | `goal-spec-review` | `review/goal-spec-review` | Pre-flight review of an implementation spec/plan for unclear, contradictory, or missing points before `/goal` execution. |
 | `pessimistic-code-review` | `review/pessimistic-code-review` | Adversarial code review using Independent Adversarial Verification (IAV); returns evidence-based PASS/FAIL. |

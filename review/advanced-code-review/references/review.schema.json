@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "advanced-code-review/review.schema.json",
+  "title": "Canonical code review record",
+  "description": "Single source of truth for the chat summary, the Markdown report and the HTML report. Written by the reviewer, validated and rendered by scripts/render-review.mjs.",
+  "type": "object",
+  "required": ["schema", "language", "scope", "spec", "verdict", "verdict_reason", "verification", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "advanced-code-review/1" },
+    "language": { "type": "string", "description": "BCP-47-ish tag of the user's language, e.g. it, en. Drives report labels." },
+    "labels": { "type": "object", "description": "Optional label overrides for languages the renderer does not ship.", "additionalProperties": { "type": "string" } },
+    "generated_at": { "type": "string", "description": "ISO timestamp; filled by the renderer when absent." },
+    "scope": {
+      "type": "object",
+      "required": ["kind", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["file", "uncommitted", "commit", "branch"] },
+        "target": { "type": "string", "description": "Path, commit hash, or '<branch> vs <base>'." },
+        "stats": { "type": "string", "description": "e.g. '3 files, +120/-4'." },
+        "files": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["source", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string", "description": "Where the spec came from: user prompt, issue #12, PR body. Never 'the implementation'." },
+        "text": { "type": "string", "description": "The requested behaviour, as supplied." }
+      }
+    },
+    "verdict": { "enum": ["PASS", "PARTIAL", "FAIL"] },
+    "verdict_reason": { "type": "string", "description": "Evidence summary the verdict rests on." },
+    "verification": {
+      "type": "array",
+      "description": "One entry per check the reviewer ran or could not run. Empty array forbids PASS.",
+      "items": {
+        "type": "object",
+        "required": ["command", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "command": { "type": "string" },
+          "status": { "enum": ["pass", "fail", "not_run"] },
+          "result": { "type": "string", "description": "Real output, verbatim or the decisive lines." },
+          "reason": { "type": "string", "description": "Required when status is not_run: why it could not run." }
+        }
+      }
+    },
+    "test_audit": {
+      "type": "array",
+      "description": "Skipped, disabled, trivial or non-representative tests, and uncovered spec requirements.",
+      "items": {
+        "type": "object",
+        "required": ["subject", "issue"],
+        "additionalProperties": false,
+        "properties": {
+          "subject": { "type": "string", "description": "Test name or spec requirement." },
+          "issue": { "enum": ["skipped", "disabled", "trivial", "implementation_shaped", "missing"] },
+          "location": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "In-scope findings only. Severity drives the verdict; see severity-and-verdict.md.",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "title", "evidence_class", "why"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^F[0-9]+$" },
+          "severity": { "enum": ["BLOCKER", "HIGH", "MEDIUM", "LOW"] },
+          "title": { "type": "string" },
+          "evidence_class": { "enum": ["VERIFIED", "INFERRED", "UNVERIFIED"] },
+          "location": { "type": "string", "description": "file:line. Mandatory for VERIFIED findings." },
+          "evidence": { "type": "string", "description": "The observed excerpt, command output, or missing-check statement." },
+          "why": { "type": "string", "description": "Impact." },
+          "how": { "type": "string", "description": "Minimum fix. Mandatory for blocking findings." },
+          "required_fix": { "type": "boolean", "description": "Defaults to true for BLOCKER/HIGH; must not be true for MEDIUM/LOW." }
+        }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "description": "Non-blocking, outside spec/scope. Cannot affect the verdict.",
+      "items": {
+        "type": "object",
+        "required": ["id", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^O[0-9]+$" },
+          "note": { "type": "string" },
+          "location": { "type": "string" }
+        }
+      }
+    },
+    "strengths": {
+      "type": "array",
+      "description": "Evidence-backed only. Omit rather than manufacture.",
+      "items": {
+        "type": "object",
+        "required": ["text"],
+        "additionalProperties": false,
+        "properties": {
+          "text": { "type": "string" },
+          "location": { "type": "string" }
+        }
+      }
+    }
+  }
+}
