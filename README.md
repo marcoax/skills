@@ -69,6 +69,7 @@ third-part/        third-party skills (not listed below)
 | --- | --- | --- |
 | `autoresearch` | `skill-management/autoresearch` | Autonomously optimizes a skill through repeated evals, scoring, and prompt mutations. |
 | `find-skills` | `skill-management/find-skills` | Helps users discover and install agent skills based on what they want to do. |
+| `opus5-skill-authoring` | `skill-management/opus5-skill-authoring` | Writes, reviews, and migrates skills for Claude 5 using minimal context, progressive disclosure, and behavior-based validation. |
 
 ### utilities/
 
