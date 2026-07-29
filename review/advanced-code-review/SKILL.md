@@ -1,18 +1,12 @@
 ---
 name: advanced-code-review
 description: >
-  Evidence-first code review: gathers its own evidence, issues a frozen PASS/PARTIAL/FAIL verdict,
-  and only then offers the minimum remediation for approval. Use for any review of a file, uncommitted
-  changes, a commit, or a branch diff — constructive review ("code review", "review this", "revisiona",
-  "controlla modifiche"), strict or pessimistic review, adversarial verification, pre-merge review,
-  completion verification ("is this really done", "verify this is complete"), scope-creep or
-  gold-plating checks, and explicit PASS/FAIL requests. Candidate replacement for optimistic-code-review
-  and pessimistic-code-review, which are still installed and still run their own pipelines — they are
-  untouched, and this skill neither delegates to them nor is called by them. Prefer a narrower specialist when the
-  request is explicitly framework-scoped (react-review for React component/hook/JSX reviews) or the
-  repo ships its own review skill. Do not use to audit a spec or plan before coding (goal-spec-review),
-  to hunt a live bug's root cause (diagnosing-bugs), to propose behaviour-preserving restructuring of a
-  diff (improve-codebase-architecture), or to write features.
+  Evidence-first code review of a file, uncommitted changes, a commit, or a branch diff: gathers its
+  own evidence, freezes a PASS/PARTIAL/FAIL verdict, then offers the minimum remediation for approval.
+  Covers constructive, strict/adversarial, pre-merge, completion and scope-creep reviews alike. Prefer
+  a narrower specialist when the request is framework-scoped (react-review) or the repo ships its own
+  review skill. Not for auditing a spec before coding (goal-spec-review), root-causing a live bug, or
+  writing features.
 user-invocable: true
 disable-model-invocation: true
 argument-hint: "[scope: file|changes|commit|branch] [spec / issue ref]"
@@ -27,6 +21,10 @@ frozen and can never soften it.
 **User-invoked only.** This skill is hidden from the model's skill router: it runs when the user calls
 `/skill:advanced-code-review` (or a shim of it), never on the model's own initiative. Do not self-trigger
 it as a side task, and do not chain into it after writing code.
+
+Candidate replacement for `optimistic-code-review` and `pessimistic-code-review`, which stay installed
+and keep running their own pipelines: this skill neither delegates to them nor is called by them. See
+[MIGRATION.md](MIGRATION.md).
 
 Respond entirely in the language of the user's input — chat, Markdown and HTML — unless the user asks
 for another language. Never switch mid-conversation.
