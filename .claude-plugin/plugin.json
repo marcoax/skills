@@ -15,6 +15,7 @@
     "./review/react-review",
     "./skill-management/autoresearch",
     "./skill-management/find-skills",
+    "./skill-management/opus5-skill-authoring",
     "./utilities/agent-md-creator",
     "./utilities/optimize-prompt"
   ]
