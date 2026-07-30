@@ -77,6 +77,7 @@ third-part/        third-party skills (not listed below)
 | Skill | Path | Description |
 | --- | --- | --- |
 | `agent-md-creator` | `utilities/agent-md-creator` | Generates standardized `CLAUDE.md` / `AGENT.md` files to document a project for AI agents. |
+| `discoverable-code-check` | `utilities/discoverable-code-check` | Post-implementation discoverability check: verifies every new symbol is reachable with a single textual search. |
 | `optimize-prompt` | `utilities/optimize-prompt` | Rewrites prompts to make them more effective for AI agents before execution. |
 
 ## Compatibility notes
