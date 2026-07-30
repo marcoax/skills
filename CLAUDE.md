@@ -24,6 +24,7 @@ personal/deprecated/   skills no longer in use
 - Skills in `planning/`, `review/`, `skill-management/`, and `utilities/` must have an entry in the top-level `README.md`.
 - Skills in `personal/` and `personal/deprecated/` must **not** appear in `README.md`.
 - Skills in `third-part/` must **not** appear in `README.md`.
+- A skill's frontmatter `description` must **not exceed 900 characters** (the loader's hard limit is 1024; 900 leaves headroom). Keep it to what the router needs to pick the skill: what it does, when to use it, when to prefer a sibling. Trigger-phrase lists, relationships with other skills, migration notes and how-it-works detail belong in the body or a reference file, not the description.
 
 ## README maintenance
 

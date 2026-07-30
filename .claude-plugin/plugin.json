@@ -9,6 +9,7 @@
     "./planning/planning-with-files",
     "./planning/task-spec-creator",
     "./planning/triage-issue",
+    "./review/advanced-code-review",
     "./review/goal-spec-review",
     "./review/optimistic-code-review",
     "./review/pessimistic-code-review",
