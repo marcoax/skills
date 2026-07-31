@@ -21,22 +21,26 @@ or in `$TMPDIR` when the user wants nothing left in the repo.
 
 ## Files and naming
 
-Follow the repo's own report convention if it has one. Otherwise use this one:
+**Reports are written outside the repository under review**, in `~/.agents/reviews/<repo>/`:
 
 ```
-.reviews/<YYYY-MM-DD-HHmm>-<scope-slug>.json   # canonical record (source of truth)
-.reviews/<YYYY-MM-DD-HHmm>-<scope-slug>.md     # generated
-.reviews/<YYYY-MM-DD-HHmm>-<scope-slug>.html   # generated
+~/.agents/reviews/<repo>/<YYYY-MM-DD-HHmm>-<scope-slug>.json   # canonical record (source of truth)
+~/.agents/reviews/<repo>/<YYYY-MM-DD-HHmm>-<scope-slug>.md     # generated
+~/.agents/reviews/<repo>/<YYYY-MM-DD-HHmm>-<scope-slug>.html   # generated
 ```
 
-`<scope-slug>` is a short kebab-case tag of the scope: `auth-controller`, `feat-billing-vs-main`,
-`commit-a1b2c3d`, `uncommitted`. Suggest adding `.reviews/` to `.gitignore` if reports should stay
-local; never commit reports on the user's behalf.
+A review must not modify the repository it reviews — not even by adding a report or a `.gitignore`
+line. A report written into the working tree becomes part of the next review's diff, where it reads as
+somebody's scope creep.
+
+Write inside the repo only when the user asks for it explicitly, and then follow the repo's own report
+convention. `<scope-slug>` is a short kebab-case tag of the scope: `auth-controller`,
+`feat-billing-vs-main`, `commit-a1b2c3d`, `uncommitted`. Never commit reports on the user's behalf.
 
 ## Render
 
 ```bash
-node <skill-dir>/scripts/render-review.mjs .reviews/2026-05-04-1130-uncommitted.json --format all
+node <skill-dir>/scripts/render-review.mjs ~/.agents/reviews/<repo>/2026-05-04-1130-uncommitted.json --format all
 # writes the .md and .html siblings, prints the chat summary
 # --format chat prints the whole report instead and writes nothing
 ```

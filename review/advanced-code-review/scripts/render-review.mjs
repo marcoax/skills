@@ -13,6 +13,9 @@ const SEVERITIES = ["BLOCKER", "HIGH", "MEDIUM", "LOW"];
 const BLOCKING = ["BLOCKER", "HIGH"];
 const EVIDENCE = ["VERIFIED", "INFERRED", "UNVERIFIED"];
 const STATUS = ["pass", "fail", "not_run"];
+const TARGET = ["change", "baseline"];
+const CRITERION = ["met", "unmet", "unverified"];
+const BASIS_FREE = ["defect", "scope_creep", "test_coverage"]; // blocking without a written rule
 const AUDIT = ["skipped", "disabled", "trivial", "implementation_shaped", "missing"];
 
 const L = {
@@ -22,7 +25,13 @@ const L = {
     testAudit: "Test audit", totals: "Severity totals", severity: "Severity", count: "Count",
     strengths: "Strengths", remediation: "Required remediation", why: "Why", how: "How",
     evidence: "Evidence", location: "Location", none: "None", generated: "Generated",
+    criteria: "Acceptance criteria", criterion: "Criterion", basis: "Basis", standards: "Documented standards",
+    rule: "Rule", source: "Source", met: "met", unmet: "not met", unverified: "not verified",
+    humanReview: "Points for your judgment", decision: "Decision", options: "Options",
+    compareWith: "Compare with", whyNotSettled: "Why I did not settle it",
+    humanMenu: (n) => `${n} point(s) need your judgment. Go through them? (1) one by one (2) not now`,
     incomplete: "Verification incomplete", pass: "executed, passed", fail: "executed, failed",
+    preexisting: "pre-existing, does not fail the review",
     not_run: "not executed", menu: "Apply fixes? (1) one by one (2) all required (3) selected (e.g. \"1,3\") (4) none [+tests]",
     finding: "Finding", subject: "Subject", issue: "Issue", note: "Note", files: "Files",
     noImpact: "Does not affect the verdict." },
@@ -32,7 +41,13 @@ const L = {
     testAudit: "Audit dei test", totals: "Totali per severità", severity: "Severità", count: "Numero",
     strengths: "Punti di forza", remediation: "Correzioni richieste", why: "Perché", how: "Come",
     evidence: "Evidenza", location: "Posizione", none: "Nessuno", generated: "Generato",
+    criteria: "Criteri di accettazione", criterion: "Criterio", basis: "Fondamento", standards: "Standard documentati",
+    rule: "Regola", source: "Fonte", met: "soddisfatto", unmet: "non soddisfatto", unverified: "non verificato",
+    humanReview: "Punti da rivedere a mano", decision: "Decisione", options: "Opzioni",
+    compareWith: "Da confrontare con", whyNotSettled: "Perché non l'ho deciso io",
+    humanMenu: (n) => `${n} punt${n === 1 ? "o richiede" : "i richiedono"} il tuo giudizio. Li vediamo? (1) uno alla volta (2) non ora`,
     incomplete: "Verifica incompleta", pass: "eseguito, superato", fail: "eseguito, fallito",
+    preexisting: "preesistente, non fa fallire la review",
     not_run: "non eseguito", menu: "Applico le correzioni? (1) una alla volta (2) tutte le richieste (3) selezionate (es. \"1,3\") (4) nessuna [+tests]",
     finding: "Rilievo", subject: "Oggetto", issue: "Problema", note: "Nota", files: "File",
     noImpact: "Non incide sul verdetto." },
@@ -50,12 +65,15 @@ function validate(r) {
   const e = [];
   if (r?.schema !== "advanced-code-review/1") e.push(`schema must be "advanced-code-review/1"`);
   keys(r, ["schema", "language", "labels", "generated_at", "scope", "spec", "verdict", "verdict_reason",
-    "verification", "test_audit", "findings", "observations", "strengths"], "root", e);
+    "criteria", "standards", "verification", "test_audit", "findings", "observations",
+    "for_human_review", "strengths"], "root", e);
   need(r, ["language", "scope", "spec", "verdict", "verdict_reason"], "root", e);
 
-  keys(r.scope, ["kind", "target", "stats", "files"], "scope", e);
+  keys(r.scope, ["kind", "target", "base_sha", "head_sha", "stats", "files"], "scope", e);
   need(r.scope, ["kind", "target"], "scope", e);
   if (r.scope && !["file", "uncommitted", "commit", "branch"].includes(r.scope.kind)) e.push(`scope.kind invalid: ${r.scope.kind}`);
+  if (["branch", "commit"].includes(r.scope?.kind) && !r.scope.head_sha)
+    e.push("scope.head_sha is required for branch and commit scopes: a frozen verdict must name the state it was frozen on");
 
   keys(r.spec, ["source", "text"], "spec", e);
   need(r.spec, ["source", "text"], "spec", e);
@@ -69,20 +87,44 @@ function validate(r) {
     if (ver.length === 0) e.push("verification is empty: record each executed check, or a not_run entry with a reason");
     ver.forEach((v, i) => {
       const w = `verification[${i}]`;
-      keys(v, ["command", "status", "result", "reason"], w, e);
-      need(v, ["command", "status"], w, e);
+      keys(v, ["command", "status", "target", "result", "reason"], w, e);
+      need(v, ["command", "status", "target"], w, e);
       if (!STATUS.includes(v.status)) e.push(`${w}: status invalid: ${v.status}`);
+      if (!TARGET.includes(v.target)) e.push(`${w}: target invalid: ${v.target} (change = judges the diff, baseline = red before the change)`);
       if (v.status === "not_run" && !v.reason) e.push(`${w}: not_run requires "reason"`);
       if (v.status !== "not_run" && !v.result) e.push(`${w}: ${v.status} requires the real "result" output`);
     });
   }
 
+  // the law a blocking finding can invoke: verbatim spec criteria, or rules written in the repo's docs
+  const law = new Set();
+  (r.criteria ?? []).forEach((c, i) => {
+    const w = `criteria[${i}]`;
+    keys(c, ["id", "text", "status", "evidence"], w, e);
+    need(c, ["id", "text", "status"], w, e);
+    if (!/^C\d+$/.test(c.id ?? "")) e.push(`${w}: id must match C<number>`);
+    if (!CRITERION.includes(c.status)) e.push(`${w}: status invalid: ${c.status}`);
+    law.add(c.id);
+  });
+  (r.standards ?? []).forEach((s, i) => {
+    const w = `standards[${i}]`;
+    keys(s, ["id", "rule", "source"], w, e);
+    need(s, ["id", "rule", "source"], w, e);
+    if (!/^S\d+$/.test(s.id ?? "")) e.push(`${w}: id must match S<number>`);
+    law.add(s.id);
+  });
+
   const ids = new Set();
   const fin = Array.isArray(r.findings) ? r.findings : (e.push("findings must be an array"), []);
   fin.forEach((f, i) => {
     const w = `findings[${i}]`;
-    keys(f, ["id", "severity", "title", "evidence_class", "location", "evidence", "why", "how", "required_fix"], w, e);
+    keys(f, ["id", "severity", "basis", "title", "evidence_class", "location", "evidence", "why", "how", "required_fix"], w, e);
     need(f, ["id", "severity", "title", "evidence_class", "why"], w, e);
+    if (BLOCKING.includes(f.severity)) {
+      if (!f.basis) e.push(`${w}: blocking findings require "basis" (C<n>, S<n>, defect, scope_creep or test_coverage)`);
+      else if (!BASIS_FREE.includes(f.basis) && !law.has(f.basis))
+        e.push(`${w}: basis "${f.basis}" cites nothing — add it verbatim to criteria[]/standards[], or you have an opinion, not a blocking finding`);
+    }
     if (!/^F\d+$/.test(f.id ?? "")) e.push(`${w}: id must match F<number>`);
     if (ids.has(f.id)) e.push(`${w}: duplicate id ${f.id}`);
     ids.add(f.id);
@@ -90,28 +132,54 @@ function validate(r) {
     if (!EVIDENCE.includes(f.evidence_class)) e.push(`${w}: evidence_class invalid: ${f.evidence_class}`);
     if (f.evidence_class === "VERIFIED" && !f.location) e.push(`${w}: VERIFIED findings require a file:line location`);
     if (BLOCKING.includes(f.severity) && !f.how) e.push(`${w}: blocking findings require "how" (minimum fix)`);
+    if (f.basis === "scope_creep" && BLOCKING.includes(f.severity) && !f.evidence)
+      e.push(`${w}: scope_creep needs the evidence of what was added beyond the spec`);
     if (f.required_fix === true && !BLOCKING.includes(f.severity)) e.push(`${w}: required_fix is only for BLOCKER/HIGH`);
   });
 
+  // a claim that points at code says how it was known — wherever in the record it lives
+  const sourced = (o, w) => {
+    if (o.evidence_class && !EVIDENCE.includes(o.evidence_class)) e.push(`${w}: evidence_class invalid: ${o.evidence_class}`);
+    if (o.location && !o.evidence_class) e.push(`${w}: cites a location, so it needs an evidence_class`);
+  };
   (r.observations ?? []).forEach((o, i) => {
     const w = `observations[${i}]`;
-    keys(o, ["id", "note", "location"], w, e);
+    keys(o, ["id", "note", "evidence_class", "location"], w, e);
     need(o, ["id", "note"], w, e);
     if (!/^O\d+$/.test(o.id ?? "")) e.push(`${w}: id must match O<number>`);
+    sourced(o, w);
   });
-  (r.strengths ?? []).forEach((s, i) => { keys(s, ["text", "location"], `strengths[${i}]`, e); need(s, ["text"], `strengths[${i}]`, e); });
+  const hr = r.for_human_review ?? [];
+  if (hr.length > 3) e.push("for_human_review: at most 3 — rank them, an unbounded list is a way to look thorough");
+  hr.forEach((h, i) => {
+    const w = `for_human_review[${i}]`;
+    keys(h, ["id", "decision", "location", "compare_with", "options", "why_not_settled"], w, e);
+    need(h, ["id", "decision", "location", "why_not_settled"], w, e);
+    if (!/^H\d+$/.test(h.id ?? "")) e.push(`${w}: id must match H<number>`);
+    if (!Array.isArray(h.options) || h.options.length < 2)
+      e.push(`${w}: needs at least two defensible options — with one, it is a finding, not a decision to hand over`);
+  });
+
+  (r.strengths ?? []).forEach((s, i) => {
+    const w = `strengths[${i}]`;
+    keys(s, ["text", "evidence_class", "location"], w, e); need(s, ["text"], w, e); sourced(s, w);
+  });
   (r.test_audit ?? []).forEach((t, i) => {
     const w = `test_audit[${i}]`;
     keys(t, ["subject", "issue", "location", "note"], w, e);
     need(t, ["subject", "issue"], w, e);
     if (!AUDIT.includes(t.issue)) e.push(`${w}: issue invalid: ${t.issue}`);
+    if (t.issue === "missing" && !t.note)
+      e.push(`${w}: a requirement with no test needs a note — say whether anything else verifies that behaviour`);
   });
 
   // verdict gate — derived, not declared
   const c = counts(fin);
-  const anyFail = (ver ?? []).some((v) => v.status === "fail");
+  // a red that predates the change (target: baseline) never fails the review — it stays in the report
+  const anyFail = (ver ?? []).some((v) => v.status === "fail" && v.target === "change");
   const anyNotRun = (ver ?? []).some((v) => v.status === "not_run");
-  const allPass = Array.isArray(ver) && ver.length > 0 && ver.every((v) => v.status === "pass");
+  const allPass = Array.isArray(ver) && ver.length > 0 &&
+    ver.every((v) => v.status === "pass" || (v.status === "fail" && v.target === "baseline"));
   let derived = null;
   if (c.BLOCKER > 0 || anyFail) derived = "FAIL";
   else if (c.HIGH > 0 || anyNotRun) derived = "PARTIAL";
@@ -126,12 +194,16 @@ function validate(r) {
 const counts = (findings) => findings.reduce((a, f) => (a[f.severity] = (a[f.severity] ?? 0) + 1, a),
   { BLOCKER: 0, HIGH: 0, MEDIUM: 0, LOW: 0 });
 
+// a baseline red still shows as failed — it just cannot hide behind, or produce, a verdict
+const stat = (t, v) => (v.status === "fail" && v.target === "baseline") ? `${t.fail} (${t.preexisting})` : t[v.status];
+
 // ---------- rendering ----------
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
   .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 const VERDICT_MARK = { PASS: "✅ PASS", PARTIAL: "⚠️ PARTIAL", FAIL: "❌ FAIL" };
 const SEV_MARK = { BLOCKER: "⛔", HIGH: "🟠", MEDIUM: "🟡", LOW: "🟢" };
-const scopeLine = (s) => `${s.kind}: ${s.target}${s.stats ? ` (${s.stats})` : ""}`;
+const scopeLine = (s) => `${s.kind}: ${s.target}${s.stats ? ` (${s.stats})` : ""}` +
+  (s.head_sha ? ` [${s.base_sha ? `${s.base_sha}..` : ""}${s.head_sha}]` : "");
 const blockingOf = (r) => r.findings.filter((f) => BLOCKING.includes(f.severity));
 const requiredOf = (r) => r.findings.filter((f) => f.required_fix !== false && BLOCKING.includes(f.severity));
 
@@ -144,18 +216,29 @@ function markdown(r, t, c) {
   out.push(`- **${t.specSource}**: ${r.spec.source}`);
   out.push(`- **${t.generated}**: ${r.generated_at}`, "");
   out.push(`## ${t.spec}`, "", fence(r.spec.text), "");
+  if (r.criteria?.length) {
+    out.push(`## ${t.criteria}`, "", `| # | ${t.criterion} | ${t.status} | ${t.evidence} |`, "|---|---|---|---|");
+    for (const k of r.criteria) out.push(`| ${k.id} | ${k.text} | ${t[k.status]} | ${k.evidence ?? "—"} |`);
+    out.push("");
+  }
+  if (r.standards?.length) {
+    out.push(`## ${t.standards}`, "", `| # | ${t.rule} | ${t.source} |`, "|---|---|---|");
+    for (const s of r.standards) out.push(`| ${s.id} | ${s.rule} | \`${s.source}\` |`);
+    out.push("");
+  }
+
   out.push(`## ${t.verdict}: ${VERDICT_MARK[r.verdict]}`, "", r.verdict_reason, "");
-  if (r.anyNotRun) out.push(`> ⚠️ ${t.incomplete}`, "");
+  if (r.anyNotRun || r.anyUnverified) out.push(`> ⚠️ ${t.incomplete}`, "");
 
   out.push(`## ${t.totals}`, "", `| ${t.severity} | ${t.count} |`, "|---|---|");
   for (const s of SEVERITIES) out.push(`| ${SEV_MARK[s]} ${s} | ${c[s]} |`);
   out.push(`| — ${t.nonBlocking} | ${(r.observations ?? []).length} |`, "");
 
   out.push(`## ${t.verification}`, "", `| ${t.command} | ${t.status} |`, "|---|---|");
-  for (const v of r.verification) out.push(`| \`${v.command}\` | ${t[v.status]} |`);
+  for (const v of r.verification) out.push(`| \`${v.command}\` | ${stat(t, v)} |`);
   out.push("");
   for (const v of r.verification) {
-    out.push(`### \`${v.command}\` — ${t[v.status]}`, "");
+    out.push(`### \`${v.command}\` — ${stat(t, v)}`, "");
     out.push(v.status === "not_run" ? `${t.reason}: ${v.reason}` : fence(v.result), "");
   }
 
@@ -168,7 +251,7 @@ function markdown(r, t, c) {
   if (nb.length || (r.observations ?? []).length) {
     out.push(`## ${t.nonBlocking}`, "", `_${t.noImpact}_`, "");
     for (const f of nb) out.push(...findingMd(f, t));
-    for (const o of r.observations ?? []) out.push(`- **${o.id}**${o.location ? ` \`${o.location}\`` : ""} — ${o.note}`);
+    for (const o of r.observations ?? []) out.push(`- **${o.id}**${o.location ? ` \`${o.location}\`` : ""}${o.evidence_class ? ` (${o.evidence_class})` : ""} — ${o.note}`);
     out.push("");
   }
 
@@ -180,7 +263,7 @@ function markdown(r, t, c) {
 
   if ((r.strengths ?? []).length) {
     out.push(`## ${t.strengths}`, "");
-    for (const s of r.strengths) out.push(`- ${s.text}${s.location ? ` (\`${s.location}\`)` : ""}`);
+    for (const s of r.strengths) out.push(`- ${s.text}${s.location ? ` (\`${s.location}\`${s.evidence_class ? `, ${s.evidence_class}` : ""})` : ""}`);
     out.push("");
   }
 
@@ -192,12 +275,26 @@ function markdown(r, t, c) {
       `   - ${t.why}: ${f.why}`, `   - ${t.how}: ${f.how}`));
     out.push("", t.menu, "");
   }
+
+  // last, and after remediation: the decisions that were never the reviewer's to make
+  const hr = r.for_human_review ?? [];
+  if (hr.length) {
+    out.push(`## ${t.humanReview}`, "");
+    for (const h of hr) {
+      out.push(`### ${h.id} — ${h.decision}`, "");
+      out.push(`- **${t.location}**: \`${h.location}\`${h.compare_with ? ` · **${t.compareWith}**: \`${h.compare_with}\`` : ""}`);
+      out.push(`- **${t.options}**: ${h.options.map((o) => `_${o}_`).join(" · ")}`);
+      out.push(`- **${t.whyNotSettled}**: ${h.why_not_settled}`, "");
+    }
+    out.push(t.humanMenu(hr.length), "");
+  }
   return out.join("\n");
 }
 
 const findingMd = (f, t) => {
   const l = [`### ${f.id} — ${SEV_MARK[f.severity]} ${f.severity}: ${f.title}`, ""];
   l.push(`- **${t.location}**: ${f.location ? `\`${f.location}\`` : "—"}`);
+  if (f.basis) l.push(`- **${t.basis}**: \`${f.basis}\``);
   l.push(`- **${t.evidence}** (${f.evidence_class}): ${f.evidence ?? "—"}`);
   l.push(`- **${t.why}**: ${f.why}`);
   if (f.how) l.push(`- **${t.how}**: ${f.how}`);
@@ -213,6 +310,7 @@ function html(r, t, c) {
   const findingHtml = (f) => `<article class="finding sev-${esc(f.severity)}">
 <h3><span class="id">${esc(f.id)}</span> <span class="badge">${esc(SEV_MARK[f.severity])} ${esc(f.severity)}</span> ${esc(f.title)}</h3>
 <dl><dt>${esc(t.location)}</dt><dd>${f.location ? `<code>${esc(f.location)}</code>` : "—"}</dd>
+${f.basis ? `<dt>${esc(t.basis)}</dt><dd><code>${esc(f.basis)}</code></dd>` : ""}
 <dt>${esc(t.evidence)}</dt><dd><span class="ev ev-${esc(f.evidence_class)}">${esc(f.evidence_class)}</span>${f.evidence ? ` ${esc(f.evidence)}` : ""}</dd>
 <dt>${esc(t.why)}</dt><dd>${esc(f.why)}</dd>
 ${f.how ? `<dt>${esc(t.how)}</dt><dd>${esc(f.how)}</dd>` : ""}</dl></article>`;
@@ -264,10 +362,16 @@ pre{white-space:pre-wrap}h2{break-after:avoid}.finding,article,table{break-insid
 <strong>${esc(t.generated)}:</strong> <time datetime="${esc(r.generated_at)}">${esc(r.generated_at)}</time></p>
 </header>
 <main>
+${r.criteria?.length ? `<section aria-labelledby="crit-h"><h2 id="crit-h">${esc(t.criteria)}</h2>
+<table><caption>${esc(t.criteria)}</caption><thead><tr><th scope="col">#</th><th scope="col">${esc(t.criterion)}</th><th scope="col">${esc(t.status)}</th><th scope="col">${esc(t.evidence)}</th></tr></thead>
+<tbody>${r.criteria.map((k) => `<tr><th scope="row">${esc(k.id)}</th><td>${esc(k.text)}</td><td class="st-${esc(k.status)}">${esc(t[k.status])}</td><td>${esc(k.evidence ?? "—")}</td></tr>`).join("")}</tbody></table></section>` : ""}
+${r.standards?.length ? `<section aria-labelledby="std-h"><h2 id="std-h">${esc(t.standards)}</h2>
+<table><caption>${esc(t.standards)}</caption><thead><tr><th scope="col">#</th><th scope="col">${esc(t.rule)}</th><th scope="col">${esc(t.source)}</th></tr></thead>
+<tbody>${r.standards.map((s) => `<tr><th scope="row">${esc(s.id)}</th><td>${esc(s.rule)}</td><td><code>${esc(s.source)}</code></td></tr>`).join("")}</tbody></table></section>` : ""}
 <section aria-labelledby="verdict-h">
 <h2 id="verdict-h">${esc(t.verdict)}</h2>
 <div class="verdict v-${esc(r.verdict)}" role="status"><strong>${esc(VERDICT_MARK[r.verdict])}</strong><p>${esc(r.verdict_reason)}</p></div>
-${r.anyNotRun ? `<p class="warn">⚠️ ${esc(t.incomplete)}</p>` : ""}
+${(r.anyNotRun || r.anyUnverified) ? `<p class="warn">⚠️ ${esc(t.incomplete)}</p>` : ""}
 <table><caption>${esc(t.totals)}</caption><thead><tr><th scope="col">${esc(t.severity)}</th><th scope="col">${esc(t.count)}</th></tr></thead>
 <tbody>${SEVERITIES.map((s) => `<tr><th scope="row">${esc(SEV_MARK[s])} ${esc(s)}</th><td>${c[s]}</td></tr>`).join("")}
 <tr><th scope="row">${esc(t.nonBlocking)}</th><td>${(r.observations ?? []).length}</td></tr></tbody></table>
@@ -275,8 +379,8 @@ ${r.anyNotRun ? `<p class="warn">⚠️ ${esc(t.incomplete)}</p>` : ""}
 <section aria-labelledby="spec-h"><h2 id="spec-h">${esc(t.spec)}</h2>${pre(r.spec.text)}</section>
 <section aria-labelledby="ver-h"><h2 id="ver-h">${esc(t.verification)}</h2>
 <table><caption>${esc(t.verification)}</caption><thead><tr><th scope="col">${esc(t.command)}</th><th scope="col">${esc(t.status)}</th></tr></thead>
-<tbody>${r.verification.map((v) => `<tr><th scope="row"><code>${esc(v.command)}</code></th><td class="st-${esc(v.status)}">${esc(t[v.status])}</td></tr>`).join("")}</tbody></table>
-${r.verification.map((v) => `<h3><code>${esc(v.command)}</code> — <span class="st-${esc(v.status)}">${esc(t[v.status])}</span></h3>
+<tbody>${r.verification.map((v) => `<tr><th scope="row"><code>${esc(v.command)}</code></th><td class="st-${esc(v.status)}">${esc(stat(t, v))}</td></tr>`).join("")}</tbody></table>
+${r.verification.map((v) => `<h3><code>${esc(v.command)}</code> — <span class="st-${esc(v.status)}">${esc(stat(t, v))}</span></h3>
 ${v.status === "not_run" ? `<p>${esc(t.reason)}: ${esc(v.reason)}</p>` : pre(v.result)}`).join("")}
 </section>
 <section aria-labelledby="bl-h"><h2 id="bl-h">${esc(t.blocking)}</h2>
@@ -295,6 +399,12 @@ ${(r.strengths ?? []).length ? `<section aria-labelledby="str-h"><h2 id="str-h">
 ${req.length ? `<ol>${req.map((f) => `<li><strong>${esc(f.id)}</strong> ${esc(f.title)}${f.location ? ` — <code>${esc(f.location)}</code>` : ""}
 <dl><dt>${esc(t.why)}</dt><dd>${esc(f.why)}</dd><dt>${esc(t.how)}</dt><dd>${esc(f.how)}</dd></dl></li>`).join("")}</ol>
 <p>${esc(t.menu)}</p>` : `<p>${esc(t.none)}</p>`}</section>
+${(r.for_human_review ?? []).length ? `<section aria-labelledby="hr-h"><h2 id="hr-h">${esc(t.humanReview)}</h2>
+${r.for_human_review.map((h) => `<article class="finding"><h3><span class="id">${esc(h.id)}</span> ${esc(h.decision)}</h3>
+<dl><dt>${esc(t.location)}</dt><dd><code>${esc(h.location)}</code>${h.compare_with ? ` — ${esc(t.compareWith)} <code>${esc(h.compare_with)}</code>` : ""}</dd>
+<dt>${esc(t.options)}</dt><dd>${h.options.map((o) => `<em>${esc(o)}</em>`).join(" · ")}</dd>
+<dt>${esc(t.whyNotSettled)}</dt><dd>${esc(h.why_not_settled)}</dd></dl></article>`).join("")}
+<p>${esc(t.humanMenu(r.for_human_review.length))}</p></section>` : ""}
 </main>
 <footer>advanced-code-review · ${esc(r.schema)} · ${esc(r.verdict)}</footer>
 </body>
@@ -304,17 +414,29 @@ ${req.length ? `<ol>${req.map((f) => `<li><strong>${esc(f.id)}</strong> ${esc(f.
 
 function chat(r, t, c, links) {
   const bl = blockingOf(r);
-  const lines = [`${VERDICT_MARK[r.verdict]} — ${r.verdict_reason}`, "",
-    `${t.scope}: ${scopeLine(r.scope)}`,
-    `${t.totals}: ⛔ ${c.BLOCKER} · 🟠 ${c.HIGH} · 🟡 ${c.MEDIUM} · 🟢 ${c.LOW} · ${t.nonBlocking} ${(r.observations ?? []).length}`, ""];
+  const lines = [`${VERDICT_MARK[r.verdict]} — ${r.verdict_reason}`, ""];
+  if (r.criteria?.length) {
+    const k = r.criteria.reduce((a, x) => (a[x.status]++, a), { met: 0, unmet: 0, unverified: 0 });
+    lines.push(`${t.criteria}: ${k.met} ${t.met} · ${k.unmet} ${t.unmet} · ${k.unverified} ${t.unverified}`, "");
+    for (const x of r.criteria.filter((x) => x.status !== "met")) lines.push(`- ${x.id} [${t[x.status]}] ${x.text}`);
+    if (r.criteria.some((x) => x.status !== "met")) lines.push("");
+  }
+  lines.push(`${t.scope}: ${scopeLine(r.scope)}`,
+    `${t.totals}: ⛔ ${c.BLOCKER} · 🟠 ${c.HIGH} · 🟡 ${c.MEDIUM} · 🟢 ${c.LOW} · ${t.nonBlocking} ${(r.observations ?? []).length}`, "");
   lines.push(`${t.blocking}:`);
   if (!bl.length) lines.push(`- ${t.none}`);
-  for (const f of bl) lines.push(`- ${f.id} ${SEV_MARK[f.severity]} ${f.severity} ${f.location ? `\`${f.location}\`` : ""} — ${f.title} [${f.evidence_class}]`);
+  for (const f of bl) lines.push(`- ${f.id} ${SEV_MARK[f.severity]} ${f.severity} ${f.location ? `\`${f.location}\`` : ""} — ${f.title} [${f.evidence_class}${f.basis ? ` · ${f.basis}` : ""}]`);
   lines.push("", `${t.verification}:`);
-  for (const v of r.verification) lines.push(`- \`${v.command}\` → ${t[v.status]}${v.status === "not_run" ? ` (${v.reason})` : ""}`);
-  if (r.anyNotRun) lines.push(`- ⚠️ ${t.incomplete}`);
+  for (const v of r.verification) lines.push(`- \`${v.command}\` → ${stat(t, v)}${v.status === "not_run" ? ` (${v.reason})` : ""}`);
+  if (r.anyNotRun || r.anyUnverified) lines.push(`- ⚠️ ${t.incomplete}`);
   if (links.length) lines.push("", ...links);
   if (requiredOf(r).length) lines.push("", t.menu);
+  const hr = r.for_human_review ?? [];
+  if (hr.length) {
+    lines.push("", `${t.humanReview}:`);
+    for (const h of hr) lines.push(`- ${h.id} \`${h.location}\`${h.compare_with ? ` ↔ \`${h.compare_with}\`` : ""} — ${h.decision}`);
+    lines.push("", t.humanMenu(hr.length));
+  }
   return lines.join("\n");
 }
 
@@ -343,6 +465,7 @@ if (errors.length) {
 
 record.generated_at ??= new Date().toISOString();
 record.anyNotRun = record.verification.some((v) => v.status === "not_run");
+record.anyUnverified = (record.criteria ?? []).some((c) => c.status === "unverified");
 const t = { ...L.en, ...(L[record.language] ?? {}), ...(record.labels ?? {}) };
 const stem = basename(src).replace(/\.json$/, "");
 

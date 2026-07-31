@@ -18,6 +18,8 @@
       "properties": {
         "kind": { "enum": ["file", "uncommitted", "commit", "branch"] },
         "target": { "type": "string", "description": "Path, commit hash, or '<branch> vs <base>'." },
+        "base_sha": { "type": "string" },
+        "head_sha": { "type": "string", "description": "Required for branch and commit scopes: a frozen verdict must name the state it was frozen on." },
         "stats": { "type": "string", "description": "e.g. '3 files, +120/-4'." },
         "files": { "type": "array", "items": { "type": "string" } }
       }
@@ -28,7 +30,7 @@
       "additionalProperties": false,
       "properties": {
         "source": { "type": "string", "description": "Where the spec came from: user prompt, issue #12, PR body. Never 'the implementation'." },
-        "text": { "type": "string", "description": "The requested behaviour, as supplied." }
+        "text": { "type": "string", "description": "The requested behaviour AS SUPPLIED: pasted verbatim, or the full extract of the acceptance criteria. Never your paraphrase — the criteria you enforce must be quotable from here." }
       }
     },
     "verdict": { "enum": ["PASS", "PARTIAL", "FAIL"] },
@@ -38,11 +40,12 @@
       "description": "One entry per check the reviewer ran or could not run. Empty array forbids PASS.",
       "items": {
         "type": "object",
-        "required": ["command", "status"],
+        "required": ["command", "status", "target"],
         "additionalProperties": false,
         "properties": {
           "command": { "type": "string" },
-          "status": { "enum": ["pass", "fail", "not_run"] },
+          "status": { "enum": ["pass", "fail", "not_run"], "description": "Your judgment of the outcome, not the command's exit code." },
+          "target": { "enum": ["change", "baseline"], "description": "change = the check judges the diff under review. baseline = the red predates the change; the same command already failed on the base." },
           "result": { "type": "string", "description": "Real output, verbatim or the decisive lines." },
           "reason": { "type": "string", "description": "Required when status is not_run: why it could not run." }
         }
@@ -63,6 +66,35 @@
         }
       }
     },
+    "criteria": {
+      "type": "array",
+      "description": "Acceptance criteria taken verbatim from the spec. Required as soon as a finding cites one.",
+      "items": {
+        "type": "object",
+        "required": ["id", "text", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^C[0-9]+$" },
+          "text": { "type": "string", "description": "The criterion, verbatim. Never your paraphrase of it." },
+          "status": { "enum": ["met", "unmet", "unverified"] },
+          "evidence": { "type": "string", "description": "The verification command, finding id, or file:line that settles it." }
+        }
+      }
+    },
+    "standards": {
+      "type": "array",
+      "description": "Rules written down in the repo's own docs. A convention that is widespread in the code but undocumented does not belong here.",
+      "items": {
+        "type": "object",
+        "required": ["id", "rule", "source"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^S[0-9]+$" },
+          "rule": { "type": "string" },
+          "source": { "type": "string", "description": "file:line of the document that states it." }
+        }
+      }
+    },
     "findings": {
       "type": "array",
       "description": "In-scope findings only. Severity drives the verdict; see severity-and-verdict.md.",
@@ -73,6 +105,7 @@
         "properties": {
           "id": { "type": "string", "pattern": "^F[0-9]+$" },
           "severity": { "enum": ["BLOCKER", "HIGH", "MEDIUM", "LOW"] },
+          "basis": { "type": "string", "pattern": "^(C[0-9]+|S[0-9]+|defect|scope_creep|test_coverage)$", "description": "Where the severity comes from: a spec criterion, a documented standard, or one of the three reasons that need no written rule. Mandatory for BLOCKER and HIGH." },
           "title": { "type": "string" },
           "evidence_class": { "enum": ["VERIFIED", "INFERRED", "UNVERIFIED"] },
           "location": { "type": "string", "description": "file:line. Mandatory for VERIFIED findings." },
@@ -93,7 +126,26 @@
         "properties": {
           "id": { "type": "string", "pattern": "^O[0-9]+$" },
           "note": { "type": "string" },
+          "evidence_class": { "enum": ["VERIFIED", "INFERRED", "UNVERIFIED"], "description": "Required when you cite a location: say how you know." },
           "location": { "type": "string" }
+        }
+      }
+    },
+    "for_human_review": {
+      "type": "array",
+      "maxItems": 3,
+      "description": "Design decisions you do not have the context to settle. Never affects the verdict, never enters the fix menu.",
+      "items": {
+        "type": "object",
+        "required": ["id", "decision", "location", "options", "why_not_settled"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^H[0-9]+$" },
+          "decision": { "type": "string", "description": "The choice to make. Not 'consider refactoring'." },
+          "location": { "type": "string" },
+          "compare_with": { "type": "string", "description": "The sibling code the decision hinges on, when it does." },
+          "options": { "type": "array", "minItems": 2, "items": { "type": "string" }, "description": "At least two defensible answers. One means it is a finding, not a decision." },
+          "why_not_settled": { "type": "string" }
         }
       }
     },
@@ -106,6 +158,7 @@
         "additionalProperties": false,
         "properties": {
           "text": { "type": "string" },
+          "evidence_class": { "enum": ["VERIFIED", "INFERRED", "UNVERIFIED"], "description": "Required when you cite a location: say how you know." },
           "location": { "type": "string" }
         }
       }

@@ -18,6 +18,8 @@
     "./skill-management/find-skills",
     "./skill-management/opus5-skill-authoring",
     "./utilities/agent-md-creator",
-    "./utilities/optimize-prompt"
+    "./utilities/discoverable-code-check",
+    "./utilities/optimize-prompt",
+    "./utilities/php-tdd-workflow"
   ]
 }

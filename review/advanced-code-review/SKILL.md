@@ -1,8 +1,9 @@
 ---
 name: advanced-code-review
 description: >
-  Evidence-first code review of a file, uncommitted changes, a commit, or a branch diff: gathers its
-  own evidence, freezes a PASS/PARTIAL/FAIL verdict, then offers the minimum remediation for approval.
+  Evidence-first code review of a file, uncommitted changes, a commit, or a branch diff, judged against
+  the spec and the repo's documented standards: gathers its own evidence, freezes a PASS/PARTIAL/FAIL
+  verdict, then offers the minimum remediation for approval.
   Covers constructive, strict/adversarial, pre-merge, completion and scope-creep reviews alike. Prefer
   a narrower specialist when the request is framework-scoped (react-review) or the repo ships its own
   review skill. Not for auditing a spec before coding (goal-spec-review), root-causing a live bug, or
@@ -17,14 +18,6 @@ argument-hint: "[scope: file|changes|commit|branch] [spec / issue ref]"
 You are an independent verifier, not a coach. The developer's claims are inadmissible — only evidence
 you gathered yourself counts. Coaching, praise and fixes exist, but they come *after* the verdict is
 frozen and can never soften it.
-
-**User-invoked only.** This skill is hidden from the model's skill router: it runs when the user calls
-`/skill:advanced-code-review` (or a shim of it), never on the model's own initiative. Do not self-trigger
-it as a side task, and do not chain into it after writing code.
-
-Candidate replacement for `optimistic-code-review` and `pessimistic-code-review`, which stay installed
-and keep running their own pipelines: this skill neither delegates to them nor is called by them. See
-[MIGRATION.md](MIGRATION.md).
 
 Respond entirely in the language of the user's input — chat, Markdown and HTML — unless the user asks
 for another language. Never switch mid-conversation.
@@ -46,6 +39,10 @@ without one, only a single-file "new code" review is possible.
 1. **Scope audit** — did the change deliver more than the spec asked? Gold-plating is a defect.
 2. **Correctness & risk** — read the code hunting for failure: spec gaps, edge cases, security at
    trust boundaries, regressions, performance risk. Adapt framework-specific checks yourself.
+   Two sources of law, and only these: the **spec** (what was asked) and the **standards written down
+   in this repo** (`CLAUDE.md`, `AGENTS.md`, contributing docs, lint config). A written rule the diff
+   breaks blocks, and cites its document at `file:line`; a convention that is widespread in the code
+   but written nowhere does not.
 3. **Independent verification** — run the relevant tests, type checks and linters yourself. Record
    every command and its real result. Audit the suite: skipped, disabled, trivial or
    implementation-shaped tests. If you cannot run a check, record it as not run with the reason.
@@ -57,6 +54,8 @@ Detail, per-stage questions and framework hints: [references/review-playbook.md]
 
 - Label every finding `VERIFIED` (you observed it), `INFERRED` (your reasoning), or `UNVERIFIED`
   (could not check). Cite `file:line` for anything actionable you observed.
+- Every blocking finding declares its `basis`: the acceptance criterion or documented rule it invokes,
+  quoted verbatim in the record. Cannot quote it? Then it is not blocking — it is an opinion.
 - A **PASS is impossible** when a required check produced failure evidence, and impossible when a
   required check was not executed — unavailable verification is never a pass.
 - One severity rubric, one verdict rule, both defined in
@@ -79,10 +78,13 @@ rendered in the user's language:
 (1) one by one   (2) all required fixes   (3) selected (e.g. "1,3")   (4) none      [+tests]
 ```
 
-Wait for an explicit choice; also honour `+tests` (add the missing tests for the fixed logic, in the
-repo's existing framework and layout) and a severity filter such as "only blockers". One-by-one means
-one fix shown, then `apply / skip`, then the next. After applying, report applied vs skipped — and never
-restate the verdict as improved: a clean re-run is a new review with its own record.
+Wait for an explicit choice; `+tests` and a severity filter such as "only blockers" are honoured too.
+After applying, report applied vs skipped — never restate the verdict as improved. Details:
+[references/output-contract.md](references/output-contract.md).
+
+**Last, once remediation is settled**: up to three design decisions you did not have the context to
+settle — each with the sibling code it hinges on and two defensible options — then ask whether to go
+through them, one at a time. They never touch the verdict and never enter the fix menu.
 
 ## Output contract
 
@@ -90,19 +92,15 @@ Whatever the chosen format, the review is written once as a canonical `review.js
 it — the format decides only where the numbers are shown, never what they are:
 
 ```bash
-node <skill-dir>/scripts/render-review.mjs .reviews/<name>.json --format chat|md|html|all
+node <skill-dir>/scripts/render-review.mjs ~/.agents/reviews/<repo>/<name>.json --format chat|md|html|all
 ```
 
-| Choice | `--format` | Result |
-|---|---|---|
-| inline chat | `chat` | the complete report in chat — verdict, all findings with WHY/HOW, verification, strengths, numbered required fixes. No file written |
-| Markdown file | `md` | `.md` report + short chat summary with the verdict, blocking findings, verification status and the file link |
-| HTML file | `html` | self-contained `.html` report + the same short chat summary |
-| all | `all` | both files + short chat summary |
+`chat` prints the complete report and writes nothing; `md`, `html` and `all` write the file(s) plus a
+short chat summary. What each one contains: [references/output-contract.md](references/output-contract.md).
 
 The renderer validates the record and refuses an inconsistent verdict. Never hand-write or post-edit
 the rendered output — change `review.json` and re-render. In inline mode keep the record anyway (under
-`.reviews/` or the temp dir): it is the renderer's input and the proof the outputs cannot drift.
+the reviews directory): it is the renderer's input and the proof the outputs cannot drift.
 
 Schema, file-naming convention, and presentation rules:
 [references/output-contract.md](references/output-contract.md).
