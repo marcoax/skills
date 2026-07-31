@@ -1,9 +1,18 @@
-# Migration plan: optimistic-code-review + pessimistic-code-review → advanced-code-review
+# Migration plan: optimistic-code-review + pessimistic-code-review + code-review → advanced-code-review
 
 **Status: not executed. Nothing has been replaced yet.**
 
+`code-review` was added to the list on 2026-07-31: its two capabilities that were missing here — judging
+against the repo's documented standards, and naming structural design decisions — are now absorbed
+(`standards[]` as a second citable source of law, `for_human_review[]` as their outlet). The rationale
+and the evidence live outside this repo, in the Obsidian vault under
+`AI/skills/advanced-code-review/` (`IMPROVEMENTS.md`, `2026-07-30-confronto-vs-code-review.{md,html}`) —
+they quote a private project and do not belong in a skills repository.
+Retiring the `code-review` folder itself is a separate decision: it also touches `README.md` and the
+plugin manifest.
+
 `optimistic-code-review` and `pessimistic-code-review` are **untouched and fully operational** — original
-`SKILL.md`, original `evals/`, both in the repo and in `~/.agents/skills/`. `advanced-code-review` is
+`advanced-code-review/SKILL.md`, original `evals/`, both in the repo and in `~/.agents/skills/`. `advanced-code-review` is
 purely additive and coexists with them. The owner decides if and when to retire them, after testing this
 skill thoroughly; this document is the plan for that day, not a record of a completed change.
 
@@ -17,12 +26,12 @@ nothing about the old skills, which keep all of their original behaviour.
 
 | Source behaviour | From | Treatment in advanced-code-review |
 |---|---|---|
-| 4-way scope selection (file / uncommitted / commit / branch) + per-scope git commands | both | **retained**, compacted into [references/review-playbook.md](references/review-playbook.md) |
+| 4-way scope selection (file / uncommitted / commit / branch) + per-scope git commands | both | **retained**, compacted into [advanced-code-review/references/review-playbook.md](advanced-code-review/references/review-playbook.md) |
 | "Never infer the base branch" hard rule | optimistic | **retained** as a hard rule in `SKILL.md` |
 | Git-repo precondition, empty-diff fallback to whole-file review, ≥10-file diff confirmation | optimistic | **retained** in the playbook |
 | Plan-mode gate before running git | optimistic | **retained**, one line ("leave plan mode before collecting evidence") |
 | Read project standards (`CLAUDE.md`/`AGENT.md`) before judging conventions | both | **retained** in the playbook |
-| Severity checklist CRITICAL/HIGH/MEDIUM/LOW with framework adaptation | optimistic | **changed** into one blocking-aware rubric `BLOCKER/HIGH/MEDIUM/LOW` + non-blocking observations, [references/severity-and-verdict.md](references/severity-and-verdict.md) |
+| Severity checklist CRITICAL/HIGH/MEDIUM/LOW with framework adaptation | optimistic | **changed** into one blocking-aware rubric `BLOCKER/HIGH/MEDIUM/LOW` + non-blocking observations, [advanced-code-review/references/severity-and-verdict.md](advanced-code-review/references/severity-and-verdict.md) |
 | WHY + HOW per finding, `file:line` citations | optimistic | **retained**, now required by the renderer for blocking findings |
 | Mandatory ✅ Positives section | optimistic | **changed**: strengths are evidence-backed and optional — no manufactured praise, and they come after the frozen verdict |
 | A–F overall grade | both | **removed**: it competed with the verdict. One verdict rule now |

@@ -1,6 +1,6 @@
 {
   "skill": "advanced-code-review",
-  "note": "Model auto-invocation is disabled (disable-model-invocation: true), so 'trigger' means: the user ran /skill:advanced-code-review and the skill accepts and runs its pipeline. 'Non-trigger' means: even when invoked, it declines and routes elsewhere instead of running a review. optimistic-code-review and pessimistic-code-review are still installed and untouched; these cases only exercise this skill.",
+  "note": "Model auto-invocation is disabled (disable-model-invocation: true), so 'trigger' means: the user ran /skill:advanced-code-review and the skill accepts and runs its pipeline. 'Non-trigger' means: even when invoked, it declines and routes elsewhere instead of running a review.",
   "pass_target": "every check binary; a case fails if any check is false",
   "cases": [
     {

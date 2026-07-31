@@ -21,9 +21,13 @@ Collect what is missing, nothing more. Ask once, in the user's language.
 
 A branch diff with ≥10 files: show `--stat` and ask whether to review all at once or file by file.
 
-Read the repo's own standards (`CLAUDE.md`, `AGENTS.md`, contributing docs, lint config) before
-judging conventions. If none exist, say so and use general practice for the language — do not invent
-house rules.
+Read the repo's own standards (`CLAUDE.md`, `AGENTS.md`, contributing docs, lint config): they are the
+second source of law, recorded in `standards[]` with the `file:line` that states each rule. If none
+exist, say so and use general practice for the language — do not invent house rules.
+
+On a large diff, gather spec evidence and standards evidence in separate contexts, and never let one
+axis reorder the other's findings. If earlier reports on the same scope exist, cite them and reconcile
+the divergences on the merits — declaring your own precedence is not reconciling.
 
 ## Stage 1 — scope audit
 
@@ -58,7 +62,7 @@ mapping before classifying — the rubric itself stays in
 |---|---|
 | A complicated implementation where a cleaner reframing would delete whole categories of complexity | Non-blocking observation. Name the reframing in one sentence so it is actionable, then stop — designing it is `improve-codebase-architecture`'s job, not a required fix. |
 | A refactor that moves code around without reducing the number of concepts a reader must hold | `BLOCKER` when simplification *was* the spec — the stated goal is unmet, and churn was shipped instead. Plain scope creep (`BLOCKER`, stage 1) when the refactor was never requested. Observation only when it rode along inside a change that had to touch those lines anyway. |
-| A file crossing ~1000 lines because of this change, when the new code could live in its own module | Non-blocking observation naming the split. Escalate only if the repo's own standards set a line limit — then it is a stated-convention violation. |
+| The diff duplicates a rule across several callers, or copies a structure that now recurs identically elsewhere | Not verdict material: two defensible options, so it goes to `for_human_review` (stage 4) — name the sibling code and what the next change will cost. |
 | New conditionals bolted onto unrelated code paths | `BLOCKER` when the touched path is outside the spec: an unrequested branch in unrelated code is scope creep with untested surface. Otherwise `MEDIUM`/`HIGH` depending on the regression risk it adds to the callers you grepped. |
 
 Do not let these signals pull the review into a redesign. You name the signal with `file:line`, you do
@@ -101,6 +105,21 @@ Then audit the suite itself:
 - tests shaped after the implementation, asserting what the code does rather than what the spec requires
 - a spec requirement with no test at all
 
+Three techniques, none tied to a language:
+
+- **the tests are new and the spec is about a guard or a condition** — remove the condition, re-run,
+  restore. A test that still passes does not cover the requirement.
+- **a change looks out of spec** — remove it, re-run, restore. If something the spec requires breaks,
+  the change is enabling rather than creep, and the proof goes in the record.
+- **the criterion is "N things line up" or "this artefact is consumable"** — do not count by eye: let a
+  script count, or hand the artefact to the system that must consume it.
+
+**Protocol, not negotiable.** These write into the workspace. Before: a clean tree — otherwise skip
+them and record `not_run` with the reason. After each experiment: restore, and check the diff is empty
+again. Throwaway resources created for a check (a scratch database, a temp file) need no approval when
+they carry a dedicated name and are destroyed in the same step; any persistent write to the repo or to
+a tracker still does.
+
 Cannot run a check (no deps, no environment, no network, read-only diff)? Record it as
 `status: not_run` with the reason. Never write a command you did not execute as if it had passed, and
 never paste a developer-supplied output as your own verification — quote it as a claim and verify it.
@@ -110,3 +129,17 @@ never paste a developer-supplied output as your own verification — quote it as
 Freeze the verdict from stages 1–3. Only then assemble strengths, required fixes (minimum to clear
 the blocking findings, each with WHY and HOW), and non-blocking observations. Write `review.json`,
 render, and present the chat summary. Fixes and test generation wait for explicit approval.
+
+### Handing a decision back
+
+Last, after remediation is settled: up to three design decisions you could not settle. Emit one when
+
+- the diff replicates a sibling implementation and the spec forbids unifying them *now*
+- the same rule now lives in several callers, and the next change will touch them all again
+- two acceptance criteria contradict each other on the same behaviour
+- **you applied a rule this rubric does not contain** — every exception you had to invent is, by
+  definition, a decision that was never yours
+
+Name the decision, both defensible options, and the sibling code it hinges on. Do not design the
+answer: you are handing over a question, not a task. Then ask whether to go through them, one at a
+time. These never touch the verdict and never enter the fix menu.
