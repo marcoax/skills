@@ -71,11 +71,13 @@
       "description": "Acceptance criteria taken verbatim from the spec. Required as soon as a finding cites one.",
       "items": {
         "type": "object",
-        "required": ["id", "text", "status"],
+        "required": ["id", "text", "kind", "from", "status"],
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string", "pattern": "^C[0-9]+$" },
           "text": { "type": "string", "description": "The criterion, verbatim. Never your paraphrase of it." },
+          "kind": { "enum": ["acceptance", "context"], "description": "acceptance = the spec asks for it. context = the spec explains, motivates or describes with it. A sentence can be verbatim and still not be a requirement." },
+          "from": { "type": "string", "description": "The heading or section of the spec this was taken from, so the kind can be audited." },
           "status": { "enum": ["met", "unmet", "unverified"] },
           "evidence": { "type": "string", "description": "The verification command, finding id, or file:line that settles it." }
         }

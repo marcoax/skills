@@ -15,6 +15,7 @@ const EVIDENCE = ["VERIFIED", "INFERRED", "UNVERIFIED"];
 const STATUS = ["pass", "fail", "not_run"];
 const TARGET = ["change", "baseline"];
 const CRITERION = ["met", "unmet", "unverified"];
+const KIND = ["acceptance", "context"];
 const BASIS_FREE = ["defect", "scope_creep", "test_coverage"]; // blocking without a written rule
 const AUDIT = ["skipped", "disabled", "trivial", "implementation_shaped", "missing"];
 
@@ -25,7 +26,7 @@ const L = {
     testAudit: "Test audit", totals: "Severity totals", severity: "Severity", count: "Count",
     strengths: "Strengths", remediation: "Required remediation", why: "Why", how: "How",
     evidence: "Evidence", location: "Location", none: "None", generated: "Generated",
-    criteria: "Acceptance criteria", criterion: "Criterion", basis: "Basis", standards: "Documented standards",
+    criteria: "Acceptance criteria", criterion: "Criterion", basis: "Basis", from: "From", context: "context", standards: "Documented standards",
     rule: "Rule", source: "Source", met: "met", unmet: "not met", unverified: "not verified",
     humanReview: "Points for your judgment", decision: "Decision", options: "Options",
     compareWith: "Compare with", whyNotSettled: "Why I did not settle it",
@@ -41,7 +42,7 @@ const L = {
     testAudit: "Audit dei test", totals: "Totali per severità", severity: "Severità", count: "Numero",
     strengths: "Punti di forza", remediation: "Correzioni richieste", why: "Perché", how: "Come",
     evidence: "Evidenza", location: "Posizione", none: "Nessuno", generated: "Generato",
-    criteria: "Criteri di accettazione", criterion: "Criterio", basis: "Fondamento", standards: "Standard documentati",
+    criteria: "Criteri di accettazione", criterion: "Criterio", basis: "Fondamento", from: "Da", context: "contesto", standards: "Standard documentati",
     rule: "Regola", source: "Fonte", met: "soddisfatto", unmet: "non soddisfatto", unverified: "non verificato",
     humanReview: "Punti da rivedere a mano", decision: "Decisione", options: "Opzioni",
     compareWith: "Da confrontare con", whyNotSettled: "Perché non l'ho deciso io",
@@ -98,12 +99,15 @@ function validate(r) {
 
   // the law a blocking finding can invoke: verbatim spec criteria, or rules written in the repo's docs
   const law = new Set();
+  const context = new Set(); // criteria quoted from the spec's prose, not from what it asks for
   (r.criteria ?? []).forEach((c, i) => {
     const w = `criteria[${i}]`;
-    keys(c, ["id", "text", "status", "evidence"], w, e);
-    need(c, ["id", "text", "status"], w, e);
+    keys(c, ["id", "text", "kind", "from", "status", "evidence"], w, e);
+    need(c, ["id", "text", "kind", "from", "status"], w, e);
     if (!/^C\d+$/.test(c.id ?? "")) e.push(`${w}: id must match C<number>`);
     if (!CRITERION.includes(c.status)) e.push(`${w}: status invalid: ${c.status}`);
+    if (c.kind && !KIND.includes(c.kind)) e.push(`${w}: kind invalid: ${c.kind}`);
+    if (c.kind === "context") context.add(c.id);
     law.add(c.id);
   });
   (r.standards ?? []).forEach((s, i) => {
@@ -124,6 +128,8 @@ function validate(r) {
       if (!f.basis) e.push(`${w}: blocking findings require "basis" (C<n>, S<n>, defect, scope_creep or test_coverage)`);
       else if (!BASIS_FREE.includes(f.basis) && !law.has(f.basis))
         e.push(`${w}: basis "${f.basis}" cites nothing — add it verbatim to criteria[]/standards[], or you have an opinion, not a blocking finding`);
+      else if (context.has(f.basis))
+        e.push(`${w}: basis "${f.basis}" is a context sentence (kind: context), not something the spec asks for — a clause quoted from the rationale cannot block. At most LOW, or hand the decision over`);
     }
     if (!/^F\d+$/.test(f.id ?? "")) e.push(`${w}: id must match F<number>`);
     if (ids.has(f.id)) e.push(`${w}: duplicate id ${f.id}`);
@@ -217,8 +223,8 @@ function markdown(r, t, c) {
   out.push(`- **${t.generated}**: ${r.generated_at}`, "");
   out.push(`## ${t.spec}`, "", fence(r.spec.text), "");
   if (r.criteria?.length) {
-    out.push(`## ${t.criteria}`, "", `| # | ${t.criterion} | ${t.status} | ${t.evidence} |`, "|---|---|---|---|");
-    for (const k of r.criteria) out.push(`| ${k.id} | ${k.text} | ${t[k.status]} | ${k.evidence ?? "—"} |`);
+    out.push(`## ${t.criteria}`, "", `| # | ${t.criterion} | ${t.from} | ${t.status} | ${t.evidence} |`, "|---|---|---|---|---|");
+    for (const k of r.criteria) out.push(`| ${k.id} | ${k.text} | ${k.from}${k.kind === "context" ? ` _(${t.context})_` : ""} | ${t[k.status]} | ${k.evidence ?? "—"} |`);
     out.push("");
   }
   if (r.standards?.length) {
@@ -363,8 +369,8 @@ pre{white-space:pre-wrap}h2{break-after:avoid}.finding,article,table{break-insid
 </header>
 <main>
 ${r.criteria?.length ? `<section aria-labelledby="crit-h"><h2 id="crit-h">${esc(t.criteria)}</h2>
-<table><caption>${esc(t.criteria)}</caption><thead><tr><th scope="col">#</th><th scope="col">${esc(t.criterion)}</th><th scope="col">${esc(t.status)}</th><th scope="col">${esc(t.evidence)}</th></tr></thead>
-<tbody>${r.criteria.map((k) => `<tr><th scope="row">${esc(k.id)}</th><td>${esc(k.text)}</td><td class="st-${esc(k.status)}">${esc(t[k.status])}</td><td>${esc(k.evidence ?? "—")}</td></tr>`).join("")}</tbody></table></section>` : ""}
+<table><caption>${esc(t.criteria)}</caption><thead><tr><th scope="col">#</th><th scope="col">${esc(t.criterion)}</th><th scope="col">${esc(t.from)}</th><th scope="col">${esc(t.status)}</th><th scope="col">${esc(t.evidence)}</th></tr></thead>
+<tbody>${r.criteria.map((k) => `<tr><th scope="row">${esc(k.id)}</th><td>${esc(k.text)}</td><td>${esc(k.from)}${k.kind === "context" ? ` <em>(${esc(t.context)})</em>` : ""}</td><td class="st-${esc(k.status)}">${esc(t[k.status])}</td><td>${esc(k.evidence ?? "—")}</td></tr>`).join("")}</tbody></table></section>` : ""}
 ${r.standards?.length ? `<section aria-labelledby="std-h"><h2 id="std-h">${esc(t.standards)}</h2>
 <table><caption>${esc(t.standards)}</caption><thead><tr><th scope="col">#</th><th scope="col">${esc(t.rule)}</th><th scope="col">${esc(t.source)}</th></tr></thead>
 <tbody>${r.standards.map((s) => `<tr><th scope="row">${esc(s.id)}</th><td>${esc(s.rule)}</td><td><code>${esc(s.source)}</code></td></tr>`).join("")}</tbody></table></section>` : ""}

@@ -59,6 +59,12 @@ Only three bases need no written rule, because they are defects regardless of wh
 A rule **written** in the repo's docs and broken by the diff blocks, and cites the document. A
 convention that is widespread in the code but written nowhere does not block: it is an observation.
 
+Quoting is not enough: **provenance decides what a sentence is.** Every criterion declares `kind` —
+`acceptance` for what the spec asks for, `context` for what it explains, motivates or describes — and
+`from`, the heading it was taken from. A blocking finding may only cite an `acceptance` criterion. A
+clause lifted verbatim from the rationale is at most `LOW`, and when it pulls against something the
+spec actually asks for, it is a decision to hand over, not a verdict to issue.
+
 Two criteria that contradict each other on the same behaviour are not yours to resolve. Record both
 with their real status, and hand the decision over instead of picking a side in silence.
 
