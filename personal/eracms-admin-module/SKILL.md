@@ -11,9 +11,11 @@ description: >
 
 # eraCms Admin Module Creator
 
-Creates a new CRUD module in the eraCms admin panel following the config-driven pattern documented in `.ai/guidelines/ADMIN_ARCHITECTURE.md`.
+Creates a new CRUD module in the eraCms admin panel following the config-driven pattern.
 
-Before anything else, read `.ai/guidelines/ADMIN_ARCHITECTURE.md` to get the full context on `getFieldSpec()`, `DataTypeFactory`, `ValueObject`, admin config, and form saving.
+Before anything else, read `.ai/rules/admin.md` (ValueObject vocabulary, list column types, section config)
+and `.ai/rules/models.md` (mandatory PHP 8 attributes, `casts()`, accessors, presenters). They are the
+source of truth; this skill only sequences the work.
 
 > **Language**: always respond in the language of the user's message.
 
@@ -55,6 +57,7 @@ Present the plan to the user using this structure:
 ### Files to create
 - database/migrations/YYYY_MM_DD_create_[entities]_table.php
 - database/factories/[Entity]Factory.php
+- database/seeders/[Entity]Seeder.php
 - app/eraCms/Builders/[Entity]Builder.php  (only if custom query logic is needed; otherwise use EraCmsBuilder directly)
 - app/Models/[Entity].php
 - tests/Feature/Admin/[Entity]AdminTest.php
@@ -62,6 +65,8 @@ Present the plan to the user using this structure:
 ### Files to modify
 - config/eraCms/admin/list.php         ← adds '[entities]' section
 - resources/lang/it/admin.php          ← adds models.[entities]
+- db/era_install.sql                   ← adds the CREATE TABLE
+- database/seeders/DatabaseSeeder.php  ← registers [Entity]Seeder
 
 ### Table schema
 [name] | [type] | [nullable] | [translated]
@@ -91,7 +96,7 @@ Edit the generated file. Key conventions:
 
 - Use `foreignId()->constrained()` for foreign keys
 - Add `->index()` on columns used frequently in WHERE/ORDER
-- Always include the `down()` method with `Schema::dropIfExists`
+- Omit the `down()` method entirely — project rule, see `.ai/rules/migrations.md`
 - Common types: `string(255)`, `text()->nullable()`, `boolean()->default(1)`, `integer()->default(0)`, `date()->nullable()`
 
 For **translatable** models, also add the translations table:
@@ -111,9 +116,20 @@ Run:
 php artisan migrate --no-interaction
 ```
 
+### Mirror the schema into `db/era_install.sql`
+
+The schema lives in **two** files. `php artisan eracms:seed` installs a database by importing
+`db/era_install.sql`; it never runs the migrations. So the migration is the schema the test suite
+has, and the dump is the schema every real installation has — nothing compares the two.
+
+Add the matching `CREATE TABLE` to `db/era_install.sql`, in the same MySQL dump style as the
+surrounding tables (`DROP TABLE IF EXISTS`, the `/*!40101 ... */` guards, and the empty
+`LOCK TABLES` / `UNLOCK TABLES` block). Keep it in the file's alphabetical table order.
+See `.ai/rules/migrations.md`.
+
 ---
 
-## Step 4: Factory
+## Step 4: Factory & Seeder
 
 Create the factory with:
 ```bash
@@ -121,6 +137,16 @@ php artisan make:factory [Entity]Factory --model=[Entity] --no-interaction
 ```
 
 Edit the generated factory to define meaningful default values for all fillable fields.
+Use `$this->faker->...` (the house form: 39 factories against 1 using `fake()`).
+
+Then create a seeder so the module has data in development:
+
+```bash
+php artisan make:seeder [Entity]Seeder --no-interaction
+```
+
+Give `sort` a deterministic order with a `Sequence` rather than a random number, and register
+the seeder in `database/seeders/DatabaseSeeder::run()`.
 
 ---
 
@@ -154,6 +180,12 @@ Mandatory rules:
 - **Accessor/mutator**: always use the Laravel 9+ `Attribute` pattern (`fn` arrow). Never `getXxxAttribute()` / `setXxxAttribute()`.
 - **Dates**: use the `DatePresenter` trait if the model has `date_start`, `date_end`, `valid_from`, `valid_until`. For other date fields, create accessors in the model or in a dedicated presenter trait under `app/eraCms/Domain/[Entity]/`.
 - **casts()**: define as a method, not as a `$casts` property (project convention).
+- **Image column naming**: `ImagePresenter` resolves an image from the `imageMedia` relation or from a
+  column literally named `image` — nothing else. If you use the trait, name the column `image`
+  (Team, Course, Links). If the domain wants another name (`logo`, `cover`), do **not** use the trait:
+  `getImageUrl()` and `thumbnailUrl()` would silently return `null`, with no error and no failing test.
+  Company is the reference for that case — `logo` column, no presenter. Note that `getMediaFolder()`
+  comes from the same trait, so without it pass the folder explicitly: `new MediaUploadObject(folder: 'posts')`.
 - **M2M**: for every `RelationObject` with `multiple: 1`, add `save{FieldPluralCamelCase}()`:
   ```php
   public function saveTags(array $tags): void { $this->tags()->sync($tags); }
@@ -219,7 +251,9 @@ class [Entity] extends Model
 }
 ```
 
-Refer to `ADMIN_ARCHITECTURE.md` § "Layer 5: getFieldSpec()" for available ValueObjects (Input, Wysiwyg, DatePicker, CheckBox, Number, Hidden, Vue, FileManager, MediaDocUpload, RelationObject) and their parameters.
+The full list of ValueObjects is `app/eraCms/Tools/ValueObject/Form/` — read the constructor of the one
+you need for its parameters. `.ai/rules/admin.md` lists the ones in active use. For a model that shows most
+of the vocabulary at once, read `app/Models/Product.php`.
 
 ---
 
