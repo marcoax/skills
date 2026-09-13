@@ -1,2 +1,6 @@
 .DS_Store
 .codex/config.toml
+.idea/modules.xml
+.idea/php.xml
+.idea/skills.iml
+.idea/vcs.xml
