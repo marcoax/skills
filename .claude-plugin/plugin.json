@@ -10,16 +10,12 @@
     "./planning/task-spec-creator",
     "./planning/triage-issue",
     "./review/advanced-code-review",
-    "./review/goal-spec-review",
-    "./review/optimistic-code-review",
-    "./review/pessimistic-code-review",
     "./review/react-review",
     "./skill-management/autoresearch",
     "./skill-management/find-skills",
     "./skill-management/opus5-skill-authoring",
     "./utilities/agent-md-creator",
     "./utilities/discoverable-code-check",
-    "./utilities/optimize-prompt",
-    "./utilities/php-tdd-workflow"
+    "./utilities/optimize-prompt"
   ]
 }

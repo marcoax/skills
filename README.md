@@ -11,7 +11,7 @@ The recommended way to install these skills from GitHub is to use the official V
 npx skills@latest add marcoax/skills --list
 
 # Install a specific skill
-npx skills@latest add marcoax/skills --skill optimistic-code-review
+npx skills@latest add marcoax/skills --skill advanced-code-review
 
 # Install multiple skills
 npx skills@latest add marcoax/skills --skill react-review --skill task-spec-creator
@@ -20,10 +20,10 @@ npx skills@latest add marcoax/skills --skill react-review --skill task-spec-crea
 npx skills@latest add marcoax/skills --skill '*'
 
 # Install for a specific agent
-npx skills@latest add marcoax/skills --skill optimistic-code-review --agent codex
+npx skills@latest add marcoax/skills --skill advanced-code-review --agent codex
 
 # Install globally
-npx skills@latest add marcoax/skills --skill optimistic-code-review --agent codex --global
+npx skills@latest add marcoax/skills --skill advanced-code-review --agent codex --global
 ```
 
 Useful notes:
@@ -59,9 +59,6 @@ third-part/        third-party skills (not listed below)
 | Skill | Path | Description |
 | --- | --- | --- |
 | `advanced-code-review` | `review/advanced-code-review` | Evidence-first multi-scope review (file, uncommitted, commit, branch): independent verification, frozen PASS/PARTIAL/FAIL verdict, then minimum remediation on approval; chat / Markdown / HTML output from one canonical record. |
-| `optimistic-code-review` | `review/optimistic-code-review` | Constructive multi-scope code review in plan mode (file, branch diff, commit, uncommitted) — proposes fixes + highlights strengths. |
-| `goal-spec-review` | `review/goal-spec-review` | Pre-flight review of an implementation spec/plan for unclear, contradictory, or missing points before `/goal` execution. |
-| `pessimistic-code-review` | `review/pessimistic-code-review` | Adversarial code review using Independent Adversarial Verification (IAV); returns evidence-based PASS/FAIL. |
 | `react-review` | `review/react-review` | React 18/19 specific review: hooks, state, rendering, data fetching, component APIs. |
 
 ### skill-management/

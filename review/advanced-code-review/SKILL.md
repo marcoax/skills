@@ -79,8 +79,7 @@ rendered in the user's language:
 ```
 
 Wait for an explicit choice; `+tests` and a severity filter such as "only blockers" are honoured too.
-After applying, report applied vs skipped — never restate the verdict as improved. Details:
-[references/output-contract.md](references/output-contract.md).
+After applying, report applied vs skipped — never restate the verdict as improved.
 
 **Last, once remediation is settled**: up to three design decisions you did not have the context to
 settle — each with the sibling code it hinges on and two defensible options — then ask whether to go
@@ -96,11 +95,15 @@ node <skill-dir>/scripts/render-review.mjs ~/.agents/reviews/<repo>/<name>.json 
 ```
 
 `chat` prints the complete report and writes nothing; `md`, `html` and `all` write the file(s) plus a
-short chat summary. What each one contains: [references/output-contract.md](references/output-contract.md).
+short chat summary.
 
-The renderer validates the record and refuses an inconsistent verdict. Never hand-write or post-edit
-the rendered output — change `review.json` and re-render. In inline mode keep the record anyway (under
-the reviews directory): it is the renderer's input and the proof the outputs cannot drift.
+The renderer validates the record and **exits non-zero rather than rendering** when a gate fails — fix
+the record, never work around the validator. Never hand-write or post-edit the rendered output: change
+`review.json` and re-render. In inline mode keep the record anyway (under the reviews directory): it is
+the renderer's input and the proof the outputs cannot drift.
 
-Schema, file-naming convention, and presentation rules:
-[references/output-contract.md](references/output-contract.md).
+Everything about the record — schema, the fields the validator insists on, a worked example that
+renders as-is, file naming, and what each surface carries:
+[references/output-contract.md](references/output-contract.md). Write the record from that example
+rather than from memory; `head_sha` on a branch or commit scope and `target` on every verification
+entry are the two the validator rejects most often.

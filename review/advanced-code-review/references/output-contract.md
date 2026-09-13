@@ -59,32 +59,82 @@ work around the validator. It enforces:
 
 ## Record shape
 
-Schema: [review.schema.json](review.schema.json). Minimal example:
+Schema: [review.schema.json](review.schema.json). The renderer's validator is stricter than the
+schema's `required` list, and these are the five it rejects records for most often:
+
+- `scope.head_sha` — **required for `branch` and `commit` scopes** (with `base_sha` alongside it for a
+  branch): a frozen verdict must name the state it was frozen on.
+- `verification[].target` — `change` (judges the diff) or `baseline` (red you inherited). Required on
+  every entry, including `not_run`.
+- `findings[].basis` on every `BLOCKER`/`HIGH` — a `C<n>`, an `S<n>`, or one of `defect`,
+  `scope_creep`, `test_coverage`. A `C<n>` with `kind: "context"` is refused: rationale cannot block.
+- `evidence_class` on **any** claim that carries a `location` — observations and strengths included,
+  not just findings.
+- `criteria[]` / `standards[]` — the law a blocking finding cites has to exist in the record, quoted
+  verbatim, with `kind` and `from` for a criterion and a `file:line` `source` for a standard.
+
+A complete example, which renders as-is:
 
 ```json
 {
   "schema": "advanced-code-review/1",
   "language": "it",
-  "scope": { "kind": "branch", "target": "feat/billing vs main", "stats": "4 files, +180/-12",
-             "files": ["app/Billing/Invoice.php", "tests/InvoiceTest.php"] },
-  "spec": { "source": "issue #142", "text": "Emit an invoice PDF when an order is paid…" },
-  "verdict": "FAIL",
-  "verdict_reason": "Invoice totals ignore tax (F1) and the suite fails on InvoiceTest::test_totals.",
-  "verification": [
-    { "command": "php artisan test --filter Invoice", "status": "fail", "result": "FAILED  InvoiceTest::test_totals\nExpected 122.00, got 100.00" },
-    { "command": "vendor/bin/phpstan analyse app", "status": "not_run", "reason": "phpstan not installed in this environment" }
+  "scope": {
+    "kind": "branch",
+    "target": "feat/billing vs main",
+    "base_sha": "a1b2c3d",
+    "head_sha": "9f8e7d6",
+    "stats": "4 files, +180/-12",
+    "files": ["app/Billing/Invoice.php", "tests/InvoiceTest.php"]
+  },
+  "spec": { "source": "issue #142", "text": "Emit an invoice PDF when an order is paid. Totals are gross, tax included." },
+  "criteria": [
+    { "id": "C1", "text": "Totals are gross, tax included.", "kind": "acceptance", "from": "Acceptance criteria", "status": "unmet" },
+    { "id": "C2", "text": "A PDF is written for every paid order.", "kind": "acceptance", "from": "Acceptance criteria", "status": "unverified" },
+    { "id": "C3", "text": "Invoicing has been a source of support tickets.", "kind": "context", "from": "Background", "status": "unverified" }
   ],
-  "test_audit": [ { "subject": "InvoiceTest::test_pdf_written", "issue": "skipped", "location": "tests/InvoiceTest.php:88", "note": "covers a spec requirement" } ],
+  "standards": [
+    { "id": "S1", "rule": "Money is handled in integer cents, never floats.", "source": "CLAUDE.md:41" }
+  ],
+  "verdict": "FAIL",
+  "verdict_reason": "Invoice totals ignore tax (F1, C1 unmet) and the suite fails on InvoiceTest::test_totals.",
+  "verification": [
+    { "command": "php artisan test --filter Invoice", "status": "fail", "target": "change",
+      "result": "FAILED  InvoiceTest::test_totals\nExpected 122.00, got 100.00" },
+    { "command": "vendor/bin/phpstan analyse app", "status": "fail", "target": "baseline",
+      "result": "42 errors, identical on main — pre-existing" },
+    { "command": "vendor/bin/pint --test", "status": "not_run", "target": "change",
+      "reason": "pint not installed in this environment" }
+  ],
+  "test_audit": [
+    { "subject": "InvoiceTest::test_pdf_written", "issue": "skipped", "location": "tests/InvoiceTest.php:88",
+      "note": "covers C2, so C2 stays unverified" }
+  ],
   "findings": [
-    { "id": "F1", "severity": "BLOCKER", "title": "Tax excluded from invoice total",
+    { "id": "F1", "severity": "BLOCKER", "basis": "C1", "title": "Tax excluded from invoice total",
       "evidence_class": "VERIFIED", "location": "app/Billing/Invoice.php:64",
       "evidence": "return $this->subtotal; // tax never added",
-      "why": "Spec requires gross totals; every invoice is undercharged.",
+      "why": "C1 requires gross totals; every invoice undercharges by the tax amount.",
       "how": "Return $this->subtotal + $this->tax() and assert 122.00 in test_totals.",
-      "required_fix": true }
+      "required_fix": true },
+    { "id": "F2", "severity": "LOW", "title": "Rate held as a float", "evidence_class": "VERIFIED",
+      "location": "app/Billing/Invoice.php:19", "evidence": "private float $rate = 0.22;",
+      "why": "S1 asks for integer cents; the rounding here is small but it is the documented rule." }
   ],
-  "observations": [ { "id": "O1", "note": "PdfWriter could be extracted, out of scope for #142", "location": "app/Billing/Invoice.php:120" } ],
-  "strengths": [ { "text": "Money handled in integer cents throughout", "location": "app/Billing/Money.php:14" } ]
+  "observations": [
+    { "id": "O1", "note": "PdfWriter could be extracted; out of scope for #142.",
+      "evidence_class": "INFERRED", "location": "app/Billing/Invoice.php:120" }
+  ],
+  "for_human_review": [
+    { "id": "H1", "decision": "The tax rule now lives in Invoice and in OrderTotal.",
+      "location": "app/Billing/Invoice.php:64", "compare_with": "app/Orders/OrderTotal.php:31",
+      "options": ["Leave both and let the next change unify them", "Extract a TaxRule now, outside this spec"],
+      "why_not_settled": "#142 forbids touching OrderTotal, so unifying now is out of scope — but the next rate change edits both." }
+  ],
+  "strengths": [
+    { "text": "Money handled in integer cents throughout the new PDF path",
+      "evidence_class": "VERIFIED", "location": "app/Billing/Money.php:14" }
+  ]
 }
 ```
 

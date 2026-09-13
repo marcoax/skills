@@ -25,9 +25,18 @@ Read the repo's own standards (`CLAUDE.md`, `AGENTS.md`, contributing docs, lint
 second source of law, recorded in `standards[]` with the `file:line` that states each rule. If none
 exist, say so and use general practice for the language — do not invent house rules.
 
-On a large diff, gather spec evidence and standards evidence in separate contexts, and never let one
-axis reorder the other's findings. If earlier reports on the same scope exist, cite them and reconcile
-the divergences on the merits — declaring your own precedence is not reconciling.
+On a large diff, gather spec evidence and standards evidence in separate contexts. If earlier reports
+on the same scope exist, cite them and reconcile the divergences on the merits — declaring your own
+precedence is not reconciling.
+
+**Neither axis reorders the other.** A finding keeps the severity its own axis gives it: a spec gap
+does not become milder because the code is idiomatic, and a broken documented rule does not become
+milder because the feature works. The verdict is a single `FAIL` / `PARTIAL` / `PASS` over both, but
+it is computed from the findings as each axis wrote them — never from a re-ranked merge where the
+louder axis quiets the other. When the two axes disagree about the same lines, both findings stay in
+the record with their own ids and their own `basis`; if they disagree about what *should* happen
+there, that is a decision to hand over (stage 4), not one to settle by picking the axis you read
+last.
 
 ## Stage 1 — scope audit
 
