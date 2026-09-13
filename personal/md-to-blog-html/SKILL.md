@@ -1,12 +1,11 @@
 ---
 name: md-to-blog-html
 description: >
-  Converts a Markdown article into the exact HTML format used by the Magutti blog
-  (News model description field). Produces <h2> sections separated by <hr />,
-  <p class="article-intro"> for intro, <div class="highlight-box"> for callouts,
-  external links with target="_blank" rel="noopener", and proper &mdash;/&amp;
-  escaping. Use when the user asks to convert an MD file for the blog, prepare
-  a News article HTML, paste-ready blog post, or mentions Magutti blog formatting.
+  Converte un articolo Markdown nell'HTML esatto usato dal campo News.description del blog
+  Magutti (magutti.com), e su richiesta genera le varianti di SEO title e meta description.
+  Usa quando l'utente chiede di convertire un .md per il blog, di preparare l'HTML di un
+  articolo News, o nomina la formattazione del blog Magutti. Non usarla per conversioni
+  Markdown→HTML generiche.
 ---
 
 # MD to Blog HTML
@@ -18,7 +17,7 @@ The canonical output format is documented by the reference at `reference/templat
 ## Quick start
 
 ```bash
-python3 .claude/skills/md-to-blog-html/scripts/convert.py path/to/article.md
+python3 <skill-dir>/scripts/convert.py path/to/article.md
 ```
 
 Writes `path/to/article.html` next to the source and copies the HTML to the macOS clipboard (ready to paste into the admin News form).
