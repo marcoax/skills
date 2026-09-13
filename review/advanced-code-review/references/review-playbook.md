@@ -38,6 +38,34 @@ the record with their own ids and their own `basis`; if they disagree about what
 there, that is a decision to hand over (stage 4), not one to settle by picking the axis you read
 last.
 
+### Splitting the two axes across sub-agents
+
+Optional, and only above the ≥10-file threshold above: below it, do both readings yourself, in two
+passes. It applies to the **stage 2 reading only** — never to stage 3, whose counterfactuals write
+into the workspace and must stay single-threaded.
+
+One sub-agent reads the diff against the spec, one against the repo's documented standards. Do not
+name a specific sub-agent type: the roster differs per agent and per install, and a name that does
+not resolve fails hard. State the requirements instead, and let the environment supply something that
+meets them:
+
+- **read-only** — no edit or write tools. Stage 3 depends on a clean tree, and applying a fix needs
+  the user's approval; a sub-agent holding write tools can break both silently.
+- **one axis each**, working from the diff *you already captured* — it must not re-run `git diff`, or
+  the two axes judge different states.
+- **returns record fragments, not prose.** Findings shaped like `findings[]` but with no `id` (you
+  assign those when merging), each with `evidence` quoted verbatim from the diff. A fragment that
+  claims a `basis` returns the matching `criteria[]` or `standards[]` entry with it — without the law
+  quoted, the record will not validate anyway.
+
+In Claude Code a general-purpose sub-agent meets this; elsewhere it may be something else, or nothing
+— in which case the sequential fallback is the whole answer.
+
+Merging is yours: assign ids, and where both axes found the same defect keep one finding with the
+higher severity and **both** bases, never one axis's version of it. Then check each `evidence` string
+actually appears in the captured diff; one that does not is `UNVERIFIED`, whatever the sub-agent
+called it.
+
 ## Stage 1 — scope audit
 
 *Did the change deliver more than the spec asked?* Cite `file:line` for each:
