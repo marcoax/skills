@@ -1,6 +1,7 @@
 # Severity rubric and verdict rules
 
-One rubric. Assign the **first** matching severity, top-down — they never overlap.
+Assign the first matching severity, top-down. Field names below apply to exported records; inline
+reports convey the same evidence without requiring a JSON structure.
 
 | Severity | Blocking | Assign when |
 |---|---|---|
@@ -10,26 +11,17 @@ One rubric. Assign the **first** matching severity, top-down — they never over
 | `LOW` | no | An in-scope minor issue: naming, duplication, small conventions. |
 | observation | never | Anything outside the spec and reviewed scope: style preference, refactor idea, speculative abstraction, missing feature nobody asked for. Lives in the non-blocking section, excluded from every count that drives the verdict. |
 
-Scope creep is `BLOCKER`, not a compliment: over-delivery hides bugs in untested surface and is a
-defect against the spec. Three similar lines beat a premature abstraction.
-
-Two exceptions, both demonstrated rather than declared:
-
-- **Enabling change** — without it, a test or check the spec requires cannot run. Prove it with the
-  counterfactual: remove it, re-run, restore. Proven, it is an observation and the proof goes in the
-  record. Unproven, it is creep. The proof shows necessity, not minimality: say so when you also claim
-  the change is the smallest one that works.
-- **Non-functional change** — gitignore, tooling config, editor or CI settings, artifacts of the review
-  process itself. `LOW`, with "extract into a separate change" as the fix. It does not block, because it
-  adds no untested surface — which is the reason creep blocks in the first place.
+Scope creep means a demonstrated addition or deletion outside the requested behavior, not every
+helper or file absent from the ticket. Necessary supporting changes belong to the implementation;
+use inspection or a focused experiment when necessity is disputed. Non-functional incidental changes
+are `LOW` when worth reporting, with separation suggested only when useful.
 
 A spec requirement with **no test at all** is `MEDIUM` when another check you ran verifies that
 behaviour anyway, and `HIGH` when nothing does. Record it in `test_audit` as `missing` **and** as a
 finding with `basis: test_coverage` — a gap that cannot change anything is a gap nobody will look for.
 
-A pre-existing defect **copied into** the diff is `LOW` and in scope, even when the spec ordered you to
-replicate the original. Different from a pre-existing defect you merely did not touch, which is out of
-scope: what lives in the added lines is yours.
+A defect copied into new code is in scope; classify its actual impact using the rubric. An untouched
+pre-existing defect is a baseline observation unless the change makes it newly reachable or worse.
 
 ## Evidence classes
 
@@ -50,13 +42,14 @@ the ones nobody asked to justify.
 
 Every `BLOCKER` and `HIGH` declares its `basis`. When that basis is a spec criterion or a documented
 standard, the criterion must appear **verbatim** in `criteria[]`, or the rule in `standards[]` with the
-`file:line` of the document that states it. If you cannot quote where the rule is written, you do not
-have a blocking finding — you have an opinion.
+`file:line` of the document that states it. A claimed spec or standards violation needs that source;
+a concrete defect can instead use one of the independent bases below.
 
 Only three bases need no written rule, because they are defects regardless of what anyone documented:
 `defect` (bug, data loss, security at a trust boundary), `scope_creep`, `test_coverage`.
 
-A rule **written** in the repo's docs and broken by the diff blocks, and cites the document. A
+An applicable mandatory rule **written** in the repo's docs and broken by the diff blocks, and cites
+the document. Distinguish mandatory rules from recommendations. A
 convention that is widespread in the code but written nowhere does not block: it is an observation.
 
 Quoting is not enough: **provenance decides what a sentence is.** Every criterion declares `kind` —
@@ -80,7 +73,8 @@ and on `HEAD` and compare: the difference is the answer.
 
 ## Verdict rules
 
-Deterministic, evaluated top-down; the renderer enforces them and exits non-zero on a violation.
+Apply these rules to inline and exported reviews alike. The renderer enforces the verdict calculation
+for exported records.
 
 1. **`FAIL`** — at least one `BLOCKER` finding, or a verification entry with `status: fail` **and
    `target: change`**.
@@ -90,9 +84,12 @@ Deterministic, evaluated top-down; the renderer enforces them and exits non-zero
 3. **`PASS`** — no `BLOCKER`, no `HIGH`, at least one verification entry, and every entry is
    `status: pass` or a `fail` with `target: baseline`.
 
-An acceptance criterion the review could not check at all is recorded as `criteria[].status:
-"unverified"`. It does not move the verdict, but the criteria matrix is printed **above** it: a `PASS`
-states plainly what was never verified, instead of letting silence pass for evidence.
+For an acceptance criterion that could not be checked, record `criteria[].status: "unverified"` and
+the necessary missing verification as a `not_run` entry. The latter makes the verdict at best
+`PARTIAL`; the renderer does not infer it from criterion status alone. If the spec is unavailable,
+state that completeness is unassessed; record a missing assessment when completeness was requested
+rather than inventing criteria. For a correctness-only review, a missing feature spec alone is not a
+failed or missing check.
 
 Consequences that are not negotiable:
 
@@ -104,5 +101,5 @@ Consequences that are not negotiable:
   repo with existing debt must not make a correct change harder to pass.
 - `MEDIUM`, `LOW` and observations never change the verdict.
 - A confirmed `PASS` is stated plainly. No "but you might want to…".
-- Strengths, remediation and applied fixes never re-open or improve a frozen verdict. A re-review after
-  fixes is a new review with new evidence and its own `review.json`.
+- A verdict describes a particular state. After fixes, assess the new state with new evidence; when
+  exporting, use a new `review.json` rather than overwriting the original assessment.

@@ -1,22 +1,20 @@
-# Output contract
+# Exported report contract
 
-Chat, Markdown and HTML are three renderings of **one** record. Write the record, run the renderer,
-paste its stdout as the chat answer. Never author the Markdown or HTML by hand — drift between formats
-is a defect, and the renderer is what makes drift impossible.
+Read this reference when the user requests report files or a machine-readable record. Ordinary
+inline reviews do not require JSON or rendering. For exports, write one canonical record and render
+all requested formats from it; correct the record rather than hand-editing generated output.
 
-The user picks the format up front (`(1) inline chat (2) Markdown file (3) HTML file (4) all`). The
-choice changes only the destination: the same validated record produces every variant, so an inline
-review and a filed one carry identical verdict, ids, severities, counts, citations and verification
-status.
+Use the requested format, with Markdown as the default for an unspecified report file format.
+The renderer's chat mode is available when the user wants an inline view of the canonical record.
 
 | Choice | Command | Writes | stdout |
 |---|---|---|---|
 | inline chat | `--format chat` | nothing | the complete report: verdict, every finding with WHY/HOW, verification with real output, test audit, strengths, numbered required fixes, fix menu |
 | Markdown | `--format md` | `.md` | short summary + link |
 | HTML | `--format html` | `.html` | short summary + link |
-| all (default) | `--format all` | `.md` + `.html` | short summary + both links |
+| all | `--format all` | `.md` + `.html` | short summary + both links |
 
-Inline mode still needs the record on disk — it is the renderer's input. Keep it next to the reports,
+The renderer's chat mode still needs the record on disk — it is the renderer's input. Keep it next to the reports,
 or in `$TMPDIR` when the user wants nothing left in the repo.
 
 ## Files and naming
@@ -29,9 +27,7 @@ or in `$TMPDIR` when the user wants nothing left in the repo.
 ~/.agents/reviews/<repo>/<YYYY-MM-DD-HHmm>-<scope-slug>.html   # generated
 ```
 
-A review must not modify the repository it reviews — not even by adding a report or a `.gitignore`
-line. A report written into the working tree becomes part of the next review's diff, where it reads as
-somebody's scope creep.
+Keeping report artifacts outside the working tree prevents them from entering the next review's diff.
 
 Write inside the repo only when the user asks for it explicitly, and then follow the repo's own report
 convention. `<scope-slug>` is a short kebab-case tag of the scope: `auth-controller`,
@@ -46,9 +42,9 @@ node <skill-dir>/scripts/render-review.mjs ~/.agents/reviews/<repo>/2026-05-04-1
 # --diff <file>  checks every finding's evidence against the diff you reviewed
 ```
 
-Save the diff you captured in stage 0 and pass it as `--diff`: it is the cheapest guard against a
-`file:line` that looks right and was never read. It costs one flag and rules out the one defect the
-schema cannot see.
+Use `--diff` when every finding quotes text present in the captured diff. Findings supported by
+full-file or caller inspection may cite text outside a diff hunk; verify those citations directly
+and omit the flag. The flag checks text presence, not whether a location or inference is correct.
 
 The renderer exits non-zero and renders nothing when the record breaks a gate. Fix the record, do not
 work around the validator. It enforces:
@@ -61,7 +57,7 @@ work around the validator. It enforces:
 - with `--diff <file>`: every finding's `evidence` occurs verbatim in that diff (whitespace
   normalised). Off by default; on, a citation that was composed rather than read cannot render
 - the declared `verdict` equals the verdict derived from the evidence (see
-  [severity-and-verdict.md](severity-and-verdict.md)) — a `PASS` alongside a failed or unrun check is
+  [severity-and-verdict.md](severity-and-verdict.md)) — a `PASS` alongside a failed change check or an unrun check is
   rejected, as is a spec whose `source` is the implementation
 
 ## Record shape
@@ -126,7 +122,7 @@ A complete example, which renders as-is:
       "required_fix": true },
     { "id": "F2", "severity": "LOW", "title": "Rate held as a float", "evidence_class": "VERIFIED",
       "location": "app/Billing/Invoice.php:19", "evidence": "private float $rate = 0.22;",
-      "why": "S1 asks for integer cents; the rounding here is small but it is the documented rule." }
+      "why": "The floating-point rate deserves a rounding check; no incorrect total has been established for this line." }
   ],
   "observations": [
     { "id": "O1", "note": "PdfWriter could be extracted; out of scope for #142.",
@@ -149,9 +145,9 @@ A complete example, which renders as-is:
 
 | Surface | Content |
 |---|---|
-| chat | verdict first, blocking findings one line each with id/severity/location/evidence class, verification status per command, incomplete-verification warning, links to both reports, remediation menu when required fixes exist |
+| chat | verdict first, blocking findings one line each with id/severity/location/evidence class, verification status per command, incomplete-verification warning, links to both reports, renderer-provided remediation menu when required fixes exist (it does not revoke prior authorization) |
 | Markdown | the complete durable record: scope, spec, verdict + reason, severity totals, every command with its real output, all findings, non-blocking section, test audit, strengths, required remediation |
 | HTML | the same content, self-contained (inline CSS, no scripts, no fonts, no network), semantic sections, responsive, dark-mode and print stylesheets, headed tables, verdict conveyed by text as well as colour, all repository content escaped |
 
-Regenerating after applied fixes means a **new** record and a new timestamped triple — never edit a
+Regenerating after applied fixes means a **new** record and a new timestamped set of requested artifacts — never edit a
 frozen report to look better.
