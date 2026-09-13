@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Renders one canonical review.json into: chat summary (stdout) + Markdown + self-contained HTML.
 // Validates the record first and refuses to render an inconsistent verdict.
-// Usage: node render-review.mjs <review.json> [--format chat|md|html|all] [--out-dir <dir>]
+// Usage: node render-review.mjs <review.json> [--format chat|md|html|all] [--out-dir <dir>] [--diff <file>]
+//   --diff  optional: the captured diff. Every finding's `evidence` must occur in it verbatim —
+//           a citation that is not in the diff under review was not read, it was composed.
 //   chat -> full report to stdout, writes nothing | md/html -> that file + short chat summary
 //   all  -> both files + short chat summary (default)
 // ponytail: hand-rolled validation instead of a JSON Schema validator — no dependency, and the only
@@ -453,7 +455,7 @@ const positional = args.filter((a, i) => !a.startsWith("--") && !args[i - 1]?.st
 const src = positional[0];
 const format = flagValue("--format") ?? "all";
 if (!src || !["chat", "md", "html", "all"].includes(format)) {
-  console.error("usage: render-review.mjs <review.json> [--format chat|md|html|all] [--out-dir <dir>]");
+  console.error("usage: render-review.mjs <review.json> [--format chat|md|html|all] [--out-dir <dir>] [--diff <file>]");
   process.exit(2);
 }
 const outDir = flagValue("--out-dir") ?? dirname(src);
@@ -462,7 +464,29 @@ let record;
 try { record = JSON.parse(readFileSync(src, "utf8")); }
 catch (err) { console.error(`cannot read ${src}: ${err.message}`); process.exit(2); }
 
+// Optional gate: every `evidence` string must occur verbatim in the diff that was reviewed.
+// Off unless --diff is given, so existing records keep rendering. On, it catches the one failure
+// the schema cannot see: a citation that is syntactically perfect and was never in the diff.
+// Whitespace is normalised — a reviewer may re-indent a quoted line, but not invent one.
+function evidenceGate(r, diffPath) {
+  const squash = (s) => s.replace(/\s+/g, " ").trim();
+  let diff;
+  try { diff = squash(readFileSync(diffPath, "utf8")); }
+  catch (err) { console.error(`cannot read --diff ${diffPath}: ${err.message}`); process.exit(2); }
+  // Only findings carry `evidence`; observations and strengths cite a location and an evidence_class.
+  const out = [];
+  (r.findings ?? []).forEach((f, i) => {
+    if (!f.evidence) return;
+    if (!diff.includes(squash(f.evidence)))
+      out.push(`findings[${i}]${f.id ? ` (${f.id})` : ""}: "evidence" does not occur in the reviewed diff — `
+        + `quote the line as it appears, or drop the finding to UNVERIFIED`);
+  });
+  return out;
+}
+
 const { errors, counts: c } = validate(record);
+const diffPath = flagValue("--diff");
+if (diffPath && !errors.length) errors.push(...evidenceGate(record, diffPath));
 if (errors.length) {
   console.error(`✖ ${src} is not a renderable review (${errors.length} problem(s)):`);
   for (const e of errors) console.error(`  - ${e}`);

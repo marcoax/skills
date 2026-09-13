@@ -62,9 +62,10 @@ In Claude Code a general-purpose sub-agent meets this; elsewhere it may be somet
 — in which case the sequential fallback is the whole answer.
 
 Merging is yours: assign ids, and where both axes found the same defect keep one finding with the
-higher severity and **both** bases, never one axis's version of it. Then check each `evidence` string
-actually appears in the captured diff; one that does not is `UNVERIFIED`, whatever the sub-agent
-called it.
+higher severity and **both** bases, never one axis's version of it. Then render with
+`--diff <the diff you captured>`: the renderer refuses any finding whose `evidence` is not in it,
+which is exactly the failure a sub-agent can introduce and the schema cannot see. Use the flag
+whether or not you split — it costs nothing on a review you ran yourself.
 
 ## Stage 1 — scope audit
 

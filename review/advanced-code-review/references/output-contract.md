@@ -43,7 +43,12 @@ convention. `<scope-slug>` is a short kebab-case tag of the scope: `auth-control
 node <skill-dir>/scripts/render-review.mjs ~/.agents/reviews/<repo>/2026-05-04-1130-uncommitted.json --format all
 # writes the .md and .html siblings, prints the chat summary
 # --format chat prints the whole report instead and writes nothing
+# --diff <file>  checks every finding's evidence against the diff you reviewed
 ```
+
+Save the diff you captured in stage 0 and pass it as `--diff`: it is the cheapest guard against a
+`file:line` that looks right and was never read. It costs one flag and rules out the one defect the
+schema cannot see.
 
 The renderer exits non-zero and renders nothing when the record breaks a gate. Fix the record, do not
 work around the validator. It enforces:
@@ -53,6 +58,8 @@ work around the validator. It enforces:
 - `required_fix: true` only on `BLOCKER`/`HIGH`; `MEDIUM`/`LOW` and observations can never be required
 - executed checks carry real output; `not_run` checks carry a reason
 - `verification` is never empty
+- with `--diff <file>`: every finding's `evidence` occurs verbatim in that diff (whitespace
+  normalised). Off by default; on, a citation that was composed rather than read cannot render
 - the declared `verdict` equals the verdict derived from the evidence (see
   [severity-and-verdict.md](severity-and-verdict.md)) — a `PASS` alongside a failed or unrun check is
   rejected, as is a spec whose `source` is the implementation

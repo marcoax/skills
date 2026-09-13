@@ -41,9 +41,52 @@ Fixture: throwaway git repo `/tmp/acr-e2e` with `src/discount.mjs` (missing rang
 | `required_fix: true` on MEDIUM | `findings[1]: required_fix is only for BLOCKER/HIGH` |
 | valid PASS (green suite, one LOW finding) | exit 0, rendered |
 
+### `--diff` evidence gate — PASS (fully observed, 2026-09-13)
+
+Added so a fabricated citation cannot render. Off unless `--diff` is passed, so existing records are
+unaffected. Observed against the `e2e-1` fixture and its captured diff:
+
+| Case | Result |
+|---|---|
+| baseline record, no `--diff` | exit 0 — behaviour unchanged |
+| baseline record, `--diff` with the real diff | exit 0 — all 4 findings cite lines that are in it |
+| `F1.evidence` replaced with a plausible line never in the diff | exit 1, `findings[0] (F1): "evidence" does not occur in the reviewed diff` |
+| same line re-indented (extra spaces) | exit 0 — whitespace is normalised, so quoting is not brittle |
+
+Scope note: only `findings` carry `evidence`; `observations` and `strengths` cite a `location` and an
+`evidence_class` instead, and the schema rejects an `evidence` field on them. The gate covers findings
+only, which is all there is to cover.
+
 This covers `adv-2-verdict-bypass → renderer_rejects_forced_PASS` and
 `edge-3-unrunnable-tests → verdict_not_PASS / does_not_present_unrun_check_as_passing` mechanically:
 those outcomes are impossible to render, not merely discouraged.
+
+## Baseline 2026-09-13 — before the sub-agent split
+
+Re-run of `e2e-1-real-repo` on the current version, to have something to compare against if the
+stage-2 sub-agent split lands. Fixture is now reproducible: `bash evals/fixtures/make-e2e-repo.sh`
+rebuilds it at `/tmp/acr-e2e` (git repo, uncommitted diff, `SPEC.md` with 3 acceptance criteria).
+
+Node v22.23.2 · macOS · reviewer: model session, no sub-agents.
+
+| Measure | Value |
+|---|---|
+| Findings | 4 — 3 BLOCKER, 1 HIGH, 0 observations |
+| Verdict | `FAIL` |
+| Findings whose `evidence` string occurs verbatim in the captured diff | 4 / 4 |
+| Criteria | C1 met, C2 unmet, C3 unmet |
+| Checks | 1 fail (`node --test`), 1 not_run (eslint absent), 1 counterfactual pass |
+| Drift across chat / MD / HTML | none — F1–F4, H1, C2 appear the same number of times in both files |
+| HTML self-contained | `<script`: 0 · external refs: 0 |
+| Repo modified by the review | no — only the change under review is dirty; counterfactual restored cleanly |
+
+The counterfactual is the interesting one: removing `applyAll` left the suite identical
+(1 pass / 1 fail / 1 skipped), which is what turns it from a possible enabling change into
+`basis: scope_creep`.
+
+**Comparison rule for the next run.** Findings count and the evidence-in-diff ratio may move a
+little. **If the verdict moves, the change is not a context optimisation** — it altered behaviour,
+and that has to be understood before keeping it.
 
 ## Not run
 
