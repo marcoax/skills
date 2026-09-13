@@ -1,6 +1,11 @@
 ---
 name: lesson-update
-description: Discover new Laravel releases from the editorial sources in learning-config.md (Laravel News, Laravel Daily), propose one lesson per new version, and — on the learner's accept — generate it into lessons/ ready for a PR. Use when the learner wants to check for new Laravel versions / lessons, asks "are there new lessons?", "controlla nuove versioni", "update the lessons", "any Laravel releases I'm missing?", or runs /lesson-update. Also the discovery engine the lesson-completion auto-check (ADR-0007) runs in the background.
+description: >
+  Checks the editorial sources in learning-config.md for Laravel releases newer than the lessons
+  cover, proposes one lesson per new version, and on accept generates it into lessons/. Use when
+  the learner asks whether there are new lessons or Laravel versions to cover, or runs
+  /lesson-update. Also the discovery engine the lesson-completion auto-check runs in the
+  background. Not for teaching or choosing a lesson to run: that is lesson.
 argument-hint: "(no arguments — it scans, proposes, and on accept generates)"
 ---
 
