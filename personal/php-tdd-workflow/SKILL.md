@@ -1,350 +1,95 @@
 ---
 name: php-tdd-workflow
-description: "Workflow strutturato per eseguire un piano tecnico gia definito in progetti PHP/Laravel con task decomposition, approval gates, TDD, verifica e tracciamento del progresso. Usa questa skill quando l'utente ha gia un piano o una specifica concreta e vuole eseguirla passo per passo in PHP/Laravel, oppure dice 'esegui il piano', 'partiamo con l'implementazione', o 'implementa questa specifica'. Non usarla per richieste TDD generiche o per semplice test-first development senza orchestrazione del workflow; in quel caso usa tdd."
+description: >
+  Esegue un piano tecnico gia definito su un progetto PHP/Laravel, un task alla volta, con gate di
+  approvazione, TDD opzionale e un file di progresso sempre aggiornato. Usa questa skill quando
+  l'utente ha gia una specifica o un piano concreto e dice "esegui il piano", "partiamo con
+  l'implementazione", "implementa questa specifica". Non usarla per TDD generico o test-first senza
+  orchestrazione: in quel caso usa tdd.
 ---
 
-# PHP TDD Workflow Skill
+# PHP TDD Workflow
 
-Skill per l'esecuzione interattiva e strutturata di piani di implementazione tecnica.
-
----
-
-## Principio fondamentale
-
-**Un task alla volta. Sempre.**
-
-Il ciclo è:
+**Un task alla volta. Sempre.** Il ciclo, per ogni task:
 
 ```
-DECOMPOSIZIONE → [per ogni task] PROPOSTA → EXPLAIN → APPROVA → IMPLEMENTA → VERIFICA → (COMMIT) → PROGRESS UPDATE
+PROPOSTA → EXPLAIN → APPROVA → IMPLEMENTA → VERIFICA → (COMMIT) → PROGRESS
 ```
 
-Nessuno step può essere saltato senza conferma esplicita dell'utente.
+Nessuno step si salta senza conferma esplicita dell'utente. Silenzio non è conferma.
 
----
+I gate di questa skill sono deliberati: servono a tenere l'utente al comando su codebase legacy.
+Non accorparli, non anticipare il task successivo, non "portarti avanti" mentre aspetti risposta.
 
 ## Fase -1 — Pre-implementazione
 
-All'avvio, mostrare un unico blocco compatto:
+All'avvio proponi tre strade e fermati:
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PRE-IMPLEMENTAZIONE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[1] Scrivi una specifica da zero   → /write-a-prd
-[2] Rivedi/stress-test il piano    → /grill-me
-[3] Vai direttamente al piano      → decomposizione task
-```
+1. **Scrivere la specifica da zero** → `/write-a-prd`, poi torna qui
+2. **Stress-testare il piano esistente** → `/grill-me`, poi Fase 0
+3. **Andare dritti alla decomposizione** → Fase 0
 
-**Opzione 1 — `/write-a-prd`**: crea una specifica tramite intervista interattiva, esplora il codebase, produce un PRD strutturato. Al termine, tornare qui e procedere con l'opzione 2 o 3.
+Se una skill delegata non c'è, dillo e offri le alternative — non reimplementarla.
 
-**Opzione 2 — `/grill-me`**: stress-test del piano esistente. L'agente intervista su ogni branch del decision tree finché non c'è comprensione condivisa completa. Al termine, procedere con la Fase 0.
+## Fase 0 — Decomposizione
 
-**Opzione 3**: procedere direttamente alla decomposizione del piano.
+Analizza il piano e produci task atomiche: 1–3 file, verificabili da sole, con un output
+riconoscibile, in ordine di dipendenza. Segnala come **[PARALLELA]** quelle senza dipendenze
+reciproche.
 
-Se una skill non è presente, notificare:
-```
-⚠️  Skill /[nome] non trovata.
-Installala con: npx skills@latest add mattpocock/skills/[nome]
-```
+Presentale in tabella — `# | Task | File | Verifica attesa | Parallelizzabile` — e chiedi se la
+suddivisione va bene prima di toccare qualsiasi cosa.
 
----
+Alla conferma crea `progress_[progetto].md` nella root: formato in
+[references/progress-file.md](references/progress-file.md). È il documento definitivo del piano,
+non ne esiste un altro.
 
-## Fase 0 — Decomposizione del piano
+## Fase 1 — Il ciclo
 
-Prima di iniziare qualsiasi implementazione, analizzare il piano e produrre una lista di task atomiche.
+**Proposta.** Annuncia `TASK [N] di [TOTALE]`, i file coinvolti, cosa farai in una o due righe, e
+le scelte: `[A]` approva `[S]` skippa `[D]` discuti. Aspetta.
 
-### Criteri per un task atomico
-- Tocca un numero limitato di file (idealmente 1-3)
-- È verificabile in modo indipendente
-- Ha un output chiaro (file creato, metodo aggiunto, test passato, ecc.)
-- Non dipende da task non ancora completate (rispetta l'ordine)
-- Se due task possono essere svolte in parallelo senza dipendenze reciproche, segnalarle come **[PARALLELA]**
+**Explain.** Calibra la profondità sul task: due righe e via per un campo o una route; approccio,
+pattern esistenti di riferimento e snippet dei punti non ovvi per un controller o una migration con
+logica; piano completo, rischi e dipendenze per un modulo nuovo o un refactor. Chiudi con "Procedo
+con l'implementazione?" e resta in chat finché non arriva un sì.
 
-### Output della decomposizione
+**Backend PHP**: prima dell'Explain offri la modalità TDD (`[Y]` red→green→refactor / `[N]`
+diretta). Se sceglie TDD carica e segui la skill `/tdd` per tutto il task — è lei la fonte di
+verità del ciclo, non reimplementarlo qui.
 
-Presentare la lista task in formato tabella:
+**Implementa** solo quanto descritto. Un file non dichiarato nell'Explain non si tocca: se serve,
+fermati e chiedi.
 
-```
-| # | Task | File coinvolti | Verifica attesa | Parallelizzabile |
-|---|------|---------------|-----------------|-----------------|
-| 1 | ... | ... | ... | No |
-| 2 | ... | ... | ... | No |
-| 3 | ... | ... | ... | Sì (con #4) |
-| 4 | ... | ... | ... | Sì (con #3) |
-```
+**Verifica.** Riepiloga file toccati e cosa è cambiato in ciascuno, indica il comando o il
+controllo manuale da fare, e chiedi conferma. Verifica fallita = il task resta in corso, si
+corregge prima di avanzare.
 
-Dopo la tabella, chiedere:
-> "Questa suddivisione ti sembra corretta? Vuoi aggiungere, rimuovere o accorpare task prima di iniziare?"
+**Commit** sempre opzionale, mai bloccante: se il progetto non usa git, salta in silenzio.
+Conventional commits (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`).
 
-**Attendere conferma prima di procedere.**
+**Progress** aggiornato subito dopo ogni task, non a fine sessione.
 
-### File di progresso
-
-Alla conferma del piano, creare il file `progress_[nome-progetto].md` nella root del progetto:
-
-```markdown
-# Progress — [Nome Progetto]
-
-**Avviato**: [data]
-**Ultimo aggiornamento**: [data]
-**Piano**: [breve descrizione]
-
-## Task
-
-| # | Task | Stato | Note |
-|---|------|-------|------|
-| 1 | ... | ⏳ in attesa | |
-| 2 | ... | ⏳ in attesa | |
-
-## Log
-
-<!-- aggiornato automaticamente dopo ogni task -->
-```
-
----
-
-## Fase 1 — Ciclo per ogni task
-
-### Step 1.1 — Proposta task
-
-L'agente annuncia il task successivo:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TASK [N] di [TOTALE]: [Nome task]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-File coinvolti: [lista]
-Cosa farò: [1-2 righe descrizione]
-
-[A] Approva e vai in Explain Mode
-[S] Skippa questo task
-[D] Discuti / chiedi spiegazioni
-```
-
-Attendere risposta utente.
-
-### Step 1.2 — Explain Mode (se approvato)
-
-Il livello di dettaglio dell'Explain Mode dipende dalla complessità del task:
-
-**Task semplice** (es. aggiungere un campo a un model, una route, un piccolo metodo):
-- 2-3 righe di descrizione
-- Nessuno snippet se il pattern è ovvio
-- Diretta: "Aggiungo X in Y perché Z. Procedo?"
-
-**Task media** (es. un nuovo controller, una migration con logica, integrazione tra classi):
-- Descrizione dell'approccio
-- Pattern utilizzati (con riferimento a codice esistente se rilevante)
-- Snippet dei blocchi non ovvi (non tutto il codice)
-
-**Task complessa** (es. nuovo modulo, refactor significativo, logica algoritmica):
-- Piano dettagliato con tutti i passaggi
-- Snippet dei blocchi chiave
-- Rischi e dipendenze esplicitate
-- Eventuale discussione prima di confermare
-
-Terminare sempre con:
-> "Procedo con l'implementazione?"
-
-**Attendere conferma. Se l'utente vuole discutere, restare in modalità chat finché non c'è conferma esplicita.**
-
-### Step 1.3 — Implementazione
-
-- Implementare solo ciò descritto nell'Explain Mode
-- Nessuna modifica extra non discussa
-- Aggiornare il file progress: task → 🔄 in corso
-
-### Step 1.4 — Verifica
-
-Al termine, presentare un riepilogo:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ TASK [N] — Implementazione completata
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-File modificati/creati:
-  - [file 1]: [cosa è stato fatto]
-  - [file 2]: [cosa è stato fatto]
-
-Verifica suggerita: [comando o azione manuale]
-```
-
-Chiedere:
-> "Hai verificato? Le modifiche sono corrette?"
-
-Opzioni:
-- **OK / Approvato** → procedere al commit step
-- **C'è un problema** → correggere prima di avanzare (task resta 🔄 in corso)
-- **Skip verifica** → procedere al commit step senza verifica
-
-### Step 1.5 — Commit (sempre opzionale)
-
-```
-Vuoi committare le modifiche di questo task?
-[Y] Sì  [N] No — vai al task successivo
-```
-
-Se sì:
-```bash
-git add [file modificati]
-git commit -m "[tipo]: [descrizione concisa]"
-```
-
-Conventional commits: `feat:`, `fix:`, `refactor:`, `chore:`, `docs:`
-
-Il commit step è sempre opzionale e non bloccante — se il progetto non usa git, saltare silenziosamente.
-
-### Step 1.6 — Rollback (solo su richiesta esplicita)
-
-Se l'utente chiede esplicitamente di annullare un task già implementato:
-
-1. Elencare i file modificati dal task
-2. Chiedere conferma: "Ripristino questi file allo stato precedente?"
-3. Se confermato: eseguire `git checkout -- [file]` oppure ripristinare da backup se disponibile
-4. Aggiornare progress: task → ↩️ rollback
-
-L'agente **non esegue rollback automatici** — solo su richiesta esplicita.
-
-### Step 1.7 — Aggiornamento progress file
-
-Aggiornare `progress_[nome-progetto].md` **subito dopo** ogni task:
-
-- Stato tabella: ✅ completato / ⏭ skippato / ↩️ rollback
-- Aggiungere riga nel Log con timestamp e nota sintetica
-- Questo file è il report definitivo del piano — non esiste un documento separato
-
----
-
-## Formato del file di progresso (completo)
-
-```markdown
-# Progress — [Nome Progetto]
-
-**Avviato**: [data]
-**Ultimo aggiornamento**: [data]
-**Piano**: [breve descrizione]
-
-## Task
-
-| # | Task | Stato | Note |
-|---|------|-------|------|
-| 1 | Migration blocked_dates | ✅ completato | |
-| 2 | Model BlockedDate | ✅ completato | Aggiunto scope active() |
-| 3 | Integrazione SlotGenerator | 🔄 in corso | |
-| 4 | Variabile modale | ⏳ in attesa | |
-| 5 | Snippet blade | ⏭ skippato | Rimandato a sprint successivo |
-| 6 | Admin CRUD | ⏳ in attesa | |
-
-## Log
-
-- [2026-03-21 10:15] Task 1 completata — migration eseguita senza errori
-- [2026-03-21 10:32] Task 2 completata — model con scope e metodi statici
-- [2026-03-21 10:45] Task 3 iniziata
-
-## Note
-
-[osservazioni trasversali, problemi incontrati, decisioni prese durante l'implementazione]
-```
-
----
-
-## Modalità TDD (backend PHP)
-
-Quando un task riguarda logica backend PHP (controller, service, model, command, ecc.), l'agente propone la modalità TDD **prima** dell'Explain Mode:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TASK [N]: [Nome task] — Backend PHP
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Vuoi implementare in modalità TDD?
-[Y] Sì — ciclo red → green → refactor
-[N] No — implementazione diretta
-```
-
-### Delega alla skill TDD
-
-Se l'utente sceglie TDD, l'agente **deve caricare e seguire la skill `/tdd`** per l'intera esecuzione del task. Tutta la logica TDD (rilevamento framework, ciclo red→green→refactor, esecuzione test) è definita lì.
-
-Se la skill `/tdd` **non è presente** nel progetto o non è disponibile, notificare l'utente:
-
-```
-⚠️  Skill /tdd non trovata.
-Per usare la modalità TDD installa la skill oppure scegli
-[N] per procedere con l'implementazione diretta.
-```
-
-Non implementare logica TDD autonomamente — la skill `/tdd` è la fonte di verità per quel workflow.
-
-### Aggiornamento progress file in modalità TDD
-
-Indipendentemente da come la skill /tdd gestisce internamente il ciclo, al completamento del task aggiornare il log con:
-
-```markdown
-- [10:15] Task 3 — TDD avviato (skill /tdd)
-- [10:30] Task 3 — ✅ completato (tutti i test verdi)
-```
-
----
+**Rollback** solo su richiesta esplicita: elenca i file toccati dal task, chiedi conferma,
+ripristina, segna ↩️ nel progress. Mai automatico.
 
 ## Task parallele
 
-Quando due o più task sono marcate come **[PARALLELA]** nella tabella iniziale, l'agente può proporle insieme:
+Per le task marcate [PARALLELA] proponi la scelta tra farle insieme o in sequenza. Anche se
+implementate insieme, verifica e registra ciascuna singolarmente.
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TASK PARALLELE: [#3] e [#4]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Queste task non hanno dipendenze reciproche e possono
-essere implementate insieme.
-
-[A] Implementa entrambe insieme
-[S] Implementale in sequenza (prima #3, poi #4)
-```
-
-Le task parallele vengono comunque verificate e registrate singolarmente nel progress file.
-
----
-
-## Regole hard
-
-1. **Mai implementare più task in uno step** — salvo task marcate esplicitamente come parallele
-2. **Mai procedere senza conferma esplicita** — silenzio = stop
-3. **Mai modificare file non dichiarati nell'Explain Mode** — se emerge la necessità, dichiararlo e richiedere conferma
-4. **Correggere prima di avanzare** — verifica fallita = task resta in corso
-5. **Il progress file si aggiorna dopo ogni task** — è il documento definitivo del piano
-6. **Rollback solo su richiesta esplicita** — mai automatico
-
----
-
-## Comandi speciali utente
+## Comandi utente
 
 | Comando | Effetto |
-|---------|---------|
-| `status` / `dove siamo` | Mostrare stato corrente del progress file |
-| `skip` | Saltare task corrente (⏭ nel progress) |
-| `pausa` / `stop` | Fermare il workflow (progress salvato) |
-| `riprendi` | Riprendere dal primo task non completato |
-| `piano` | Mostrare tabella task con stati aggiornati |
-| `rollback` | Avviare procedura rollback task corrente (su conferma) |
+|---|---|
+| `status` / `dove siamo` | stato corrente dal progress file |
+| `piano` | tabella task con gli stati aggiornati |
+| `skip` | salta il task corrente (⏭) |
+| `pausa` / `stop` | ferma il workflow, progress salvato |
+| `riprendi` | riparte dal primo task non completato |
+| `rollback` | procedura di rollback del task corrente, su conferma |
 
----
+## Imprevisti
 
-## Gestione errori e imprevisti
-
-Se durante l'implementazione emerge un problema non previsto:
-
-1. **Fermarsi immediatamente** — nessuna soluzione improvvisata
-2. **Segnalare**: cosa è successo, perché blocca, opzioni disponibili
-3. **Aspettare decisione** utente prima di procedere
-4. Aggiornare progress con nota del problema
-
----
-
-## Note contestuali (progetto astore)
-
-Per il progetto `astore_new.test` / francoastore.it:
-- Stack: Laravel 5.7, PHP 7.2, Vue 2, Bootstrap 3
-- Prima di implementare admin CRUD: consultare `guidelines/ADMIN_ARCHITECTURE.md`
-- Il file di progresso va nella root del progetto
-- Conventional commits in italiano sono accettati se il progetto lo richiede
+Se emerge un problema non previsto: fermati subito, nessuna soluzione improvvisata. Di' cosa è
+successo, perché blocca e quali opzioni ci sono, annotalo nel progress, e aspetta la decisione.
