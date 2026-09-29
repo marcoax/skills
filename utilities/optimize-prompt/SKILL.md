@@ -27,7 +27,6 @@ Riformula il prompt per massimizzare efficacia con agent AI, poi eseguilo.
 ## Quando rimuovere
 
 - "Ciao", "per favore", "grazie", "vorrei che tu"
-- Spiegazioni del perché serve
 - Ripetizioni
 
 ## Workflow
@@ -44,4 +43,4 @@ Riformula il prompt per massimizzare efficacia con agent AI, poi eseguilo.
 Confermi? (s/n)
 ```
 
-5. Se "s" → esegui `/clear`, poi stampa SOLO il prompt ottimizzato (nient'altro, pronto per copia/incolla o invio)
+5. Se "s" → stampa SOLO il prompt ottimizzato (nient'altro, pronto per copia/incolla o invio); l'utente può eseguire `/clear` prima di incollarlo
