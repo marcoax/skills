@@ -1,6 +1,6 @@
 # marcoax/skills
 
-Collection of reusable skills for coding agents. This repository contains my own (non third-party) skills, organized by purpose. Skills under `personal/` (domain-specific to my own stack) and `third-part/` (third-party) are kept separately and are not listed here — browse those directories directly.
+Collection of reusable skills for coding agents. This repository contains my own skills, organized by purpose. Skills under `personal/` (domain-specific to my own stack) are kept separately and are not listed here — browse that directory directly. Third-party skills (e.g. `mattpocock/skills`, `pbakaus/impeccable`) are installed from their own repositories.
 
 ## Installation
 
@@ -41,7 +41,6 @@ planning/          planning, spec, triage workflows
 review/            code review variants
 skill-management/  meta-skills to author and tune other skills
 utilities/         general-purpose helpers
-third-part/        third-party skills (not listed below)
 ```
 
 ## Available skills
