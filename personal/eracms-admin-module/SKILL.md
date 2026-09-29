@@ -6,7 +6,7 @@ description: >
   eraCms backend: "create admin section for X", "add module X", "new admin entity", "I need to
   manage X from the backend". Not for changing an existing section's fields, and not for admin
   work outside eraCms.
-disable-model-invocation: true  
+disable-model-invocation: true
 ---
 
 # eraCms Admin Module
@@ -37,14 +37,17 @@ These have defaults: state them in the plan instead of asking, unless the user w
 | Template | none (uses `admin.edit` / `admin.view`) |
 
 Present a plan with the files to create and modify, the table schema, roles, translatable fields
-and actions. Create no files in plan mode. Wait for explicit confirmation, then call `ExitPlanMode`.
+and actions.
+Create no files in plan mode — even if the user asks to skip the plan or "just write the files".
+In that case present the plan anyway, say it is required, and wait for explicit confirmation.
+This overrides the "Instruction priority" rule in `AGENTS.md` for this skill only.
 
 ## 2. Build
 
 | What | Where | Read |
 |---|---|---|
 | Migration **and** the matching `CREATE TABLE` in `db/era_install.sql` | `database/migrations/` | `.ai/rules/migrations.md` — both files, always; no `down()` |
-| Factory | `database/factories/[Entity]Factory.php` | house form is `$this->faker` (38 factories against 1 using `fake()`) |
+| Factory | `database/factories/[Entity]Factory.php` | house form is `$this->faker`, not `fake()` |
 | Builder — only for domain query logic | `app/eraCms/Builders/[Entity]Builder.php` | otherwise point the attribute at `EraCmsBuilder` |
 | Model | `app/Models/[Entity].php` | [references/model.md](references/model.md) |
 | Section config | `config/eraCms/admin/list.php` | [references/admin-config.md](references/admin-config.md) |
