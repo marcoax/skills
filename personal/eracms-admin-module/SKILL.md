@@ -6,6 +6,7 @@ description: >
   eraCms backend: "create admin section for X", "add module X", "new admin entity", "I need to
   manage X from the backend". Not for changing an existing section's fields, and not for admin
   work outside eraCms.
+disable-model-invocation: true  
 ---
 
 # eraCms Admin Module
