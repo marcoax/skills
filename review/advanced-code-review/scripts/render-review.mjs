@@ -67,10 +67,18 @@ const need = (obj, req, where, errs) => {
 function validate(r) {
   const e = [];
   if (r?.schema !== "advanced-code-review/1") e.push(`schema must be "advanced-code-review/1"`);
-  keys(r, ["schema", "language", "labels", "generated_at", "scope", "spec", "verdict", "verdict_reason",
+  keys(r, ["schema", "language", "labels", "generated_at", "agents", "scope", "spec", "verdict", "verdict_reason",
     "criteria", "standards", "verification", "test_audit", "findings", "observations",
     "for_human_review", "strengths"], "root", e);
-  need(r, ["language", "scope", "spec", "verdict", "verdict_reason"], "root", e);
+  need(r, ["language", "agents", "scope", "spec", "verdict", "verdict_reason"], "root", e);
+
+  keys(r.agents, ["reviewer", "implementer"], "agents", e);
+  need(r.agents, ["reviewer", "implementer"], "agents", e);
+  for (const role of ["reviewer", "implementer"]) {
+    const extra = role === "implementer" ? ["source"] : [];
+    keys(r.agents?.[role], ["harness", "model", "effort", ...extra], `agents.${role}`, e);
+    if (r.agents?.[role]) need(r.agents[role], ["harness", "model", "effort", ...extra], `agents.${role}`, e);
+  }
 
   keys(r.scope, ["kind", "target", "base_sha", "head_sha", "stats", "files"], "scope", e);
   need(r.scope, ["kind", "target"], "scope", e);
@@ -212,6 +220,10 @@ const VERDICT_MARK = { PASS: "✅ PASS", PARTIAL: "⚠️ PARTIAL", FAIL: "❌ F
 const SEV_MARK = { BLOCKER: "⛔", HIGH: "🟠", MEDIUM: "🟡", LOW: "🟢" };
 const scopeLine = (s) => `${s.kind}: ${s.target}${s.stats ? ` (${s.stats})` : ""}` +
   (s.head_sha ? ` [${s.base_sha ? `${s.base_sha}..` : ""}${s.head_sha}]` : "");
+// one grep-able line per agent, same format as the implementer's handoff: `Agent: <role> | <harness> | <model> | effort <level>`
+const agentLine = (role, a) => `Agent: ${role} | ${a.harness} | ${a.model} | effort ${a.effort}`;
+const agentLines = (r) => [agentLine("review", r.agents.reviewer),
+  agentLine("implement", r.agents.implementer) + ` (${r.agents.implementer.source})`];
 const blockingOf = (r) => r.findings.filter((f) => BLOCKING.includes(f.severity));
 const requiredOf = (r) => r.findings.filter((f) => f.required_fix !== false && BLOCKING.includes(f.severity));
 
@@ -222,7 +234,9 @@ function markdown(r, t, c) {
   out.push(`- **${t.scope}**: ${scopeLine(r.scope)}`);
   if (r.scope.files?.length) out.push(`- **${t.files}**: ${r.scope.files.join(", ")}`);
   out.push(`- **${t.specSource}**: ${r.spec.source}`);
-  out.push(`- **${t.generated}**: ${r.generated_at}`, "");
+  out.push(`- **${t.generated}**: ${r.generated_at}`);
+  for (const a of agentLines(r)) out.push(`- \`${a}\``);
+  out.push("");
   out.push(`## ${t.spec}`, "", fence(r.spec.text), "");
   if (r.criteria?.length) {
     out.push(`## ${t.criteria}`, "", `| # | ${t.criterion} | ${t.from} | ${t.status} | ${t.evidence} |`, "|---|---|---|---|---|");
@@ -367,7 +381,8 @@ pre{white-space:pre-wrap}h2{break-after:avoid}.finding,article,table{break-insid
 <h1>${esc(t.title)}</h1>
 <p class="meta"><strong>${esc(t.scope)}:</strong> ${esc(scopeLine(r.scope))}<br>
 <strong>${esc(t.specSource)}:</strong> ${esc(r.spec.source)}<br>
-<strong>${esc(t.generated)}:</strong> <time datetime="${esc(r.generated_at)}">${esc(r.generated_at)}</time></p>
+<strong>${esc(t.generated)}:</strong> <time datetime="${esc(r.generated_at)}">${esc(r.generated_at)}</time><br>
+${agentLines(r).map((a) => `<code>${esc(a)}</code>`).join("<br>\n")}</p>
 </header>
 <main>
 ${r.criteria?.length ? `<section aria-labelledby="crit-h"><h2 id="crit-h">${esc(t.criteria)}</h2>
@@ -437,6 +452,7 @@ function chat(r, t, c, links) {
   lines.push("", `${t.verification}:`);
   for (const v of r.verification) lines.push(`- \`${v.command}\` → ${stat(t, v)}${v.status === "not_run" ? ` (${v.reason})` : ""}`);
   if (r.anyNotRun || r.anyUnverified) lines.push(`- ⚠️ ${t.incomplete}`);
+  lines.push("", ...agentLines(r));
   if (links.length) lines.push("", ...links);
   if (requiredOf(r).length) lines.push("", t.menu);
   const hr = r.for_human_review ?? [];

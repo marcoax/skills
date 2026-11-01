@@ -1,8 +1,8 @@
 # Exported report contract
 
-Read this reference when the user requests report files or a machine-readable record. Ordinary
-inline reviews do not require JSON or rendering. For exports, write one canonical record and render
-all requested formats from it; correct the record rather than hand-editing generated output.
+Every review writes one canonical record and renders all requested formats from it, the inline chat
+report included; correct the record rather than hand-editing generated output. The records are the
+dataset for per-model statistics, so each one stays in `~/.agents/reviews/<repo>/`.
 
 Use the requested format, with Markdown as the default for an unspecified report file format.
 The renderer's chat mode is available when the user wants an inline view of the canonical record.
@@ -14,8 +14,7 @@ The renderer's chat mode is available when the user wants an inline view of the 
 | HTML | `--format html` | `.html` | short summary + link |
 | all | `--format all` | `.md` + `.html` | short summary + both links |
 
-The renderer's chat mode still needs the record on disk — it is the renderer's input. Keep it next to the reports,
-or in `$TMPDIR` when the user wants nothing left in the repo.
+The renderer's chat mode still needs the record on disk — it is the renderer's input.
 
 ## Files and naming
 
@@ -63,8 +62,11 @@ work around the validator. It enforces:
 ## Record shape
 
 Schema: [review.schema.json](review.schema.json). The renderer's validator is stricter than the
-schema's `required` list, and these are the five it rejects records for most often:
+schema's `required` list, and these are the six it rejects records for most often:
 
+- `agents.reviewer` / `agents.implementer` — `harness`, `model`, `effort` on both, plus `source` on the
+  implementer (where its `Agent: implement` line was read, or `none`). `unknown` is a valid value; a
+  missing field is not.
 - `scope.head_sha` — **required for `branch` and `commit` scopes** (with `base_sha` alongside it for a
   branch): a frozen verdict must name the state it was frozen on.
 - `verification[].target` — `change` (judges the diff) or `baseline` (red you inherited). Required on
@@ -82,6 +84,10 @@ A complete example, which renders as-is:
 {
   "schema": "advanced-code-review/1",
   "language": "it",
+  "agents": {
+    "reviewer": { "harness": "Claude Code", "model": "claude-opus-5-5", "effort": "high" },
+    "implementer": { "harness": "Codex", "model": "unknown", "effort": "unknown", "source": "issue #142 comment" }
+  },
   "scope": {
     "kind": "branch",
     "target": "feat/billing vs main",

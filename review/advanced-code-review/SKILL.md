@@ -21,6 +21,10 @@ Take requirements from the task, issue, PR, or other stated acceptance criteria,
 implementation. If a completeness review lacks a spec, request it while continuing independent
 correctness checks; leave completeness unassessed until the requirements are available.
 
+Identify the agents: the reviewer from what your own context states (harness, model ID, effort), the
+implementer from the `Agent: implement | …` line on the issue, PR, or handoff. Record `unknown` for
+any value no source states.
+
 Read applicable repository instructions and only the supporting docs relevant to the changed behavior.
 A review request does not by itself authorize source fixes or tracker updates; honor authorization
 already given when the user requests review and remediation together.
@@ -68,8 +72,9 @@ include strengths or unresolved design decisions only when useful.
 
 ## Output and remediation
 
-Default to an inline report. For requested Markdown/HTML files or a machine-readable record, read
-[output-contract.md](references/output-contract.md) and use the canonical JSON record and renderer.
+Every review writes the canonical JSON record described in
+[output-contract.md](references/output-contract.md), so reviews stay comparable across agents and
+models; the inline report is its chat render. Write Markdown/HTML files only when requested.
 Do not ask for a format merely to begin reviewing.
 
 The verdict describes the reviewed state. If fixes are already authorized, capture that assessment,

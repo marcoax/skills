@@ -4,13 +4,42 @@
   "title": "Canonical code review record",
   "description": "Single source of truth for the chat summary, the Markdown report and the HTML report. Written by the reviewer, validated and rendered by scripts/render-review.mjs.",
   "type": "object",
-  "required": ["schema", "language", "scope", "spec", "verdict", "verdict_reason", "verification", "findings"],
+  "required": ["schema", "language", "agents", "scope", "spec", "verdict", "verdict_reason", "verification", "findings"],
   "additionalProperties": false,
   "properties": {
     "schema": { "const": "advanced-code-review/1" },
     "language": { "type": "string", "description": "BCP-47-ish tag of the user's language, e.g. it, en. Drives report labels." },
     "labels": { "type": "object", "description": "Optional label overrides for languages the renderer does not ship.", "additionalProperties": { "type": "string" } },
     "generated_at": { "type": "string", "description": "ISO timestamp; filled by the renderer when absent." },
+    "agents": {
+      "type": "object",
+      "description": "Who reviewed and who implemented, for per-model statistics. Each value comes from what the agent's own context or the tracker states; 'unknown' otherwise.",
+      "required": ["reviewer", "implementer"],
+      "additionalProperties": false,
+      "properties": {
+        "reviewer": {
+          "type": "object",
+          "required": ["harness", "model", "effort"],
+          "additionalProperties": false,
+          "properties": {
+            "harness": { "type": "string", "description": "e.g. Claude Code, Codex, Pi." },
+            "model": { "type": "string", "description": "Model ID, e.g. claude-opus-5-5." },
+            "effort": { "type": "string", "description": "Reasoning effort level." }
+          }
+        },
+        "implementer": {
+          "type": "object",
+          "required": ["harness", "model", "effort", "source"],
+          "additionalProperties": false,
+          "properties": {
+            "harness": { "type": "string" },
+            "model": { "type": "string" },
+            "effort": { "type": "string" },
+            "source": { "type": "string", "description": "Where the implementer was read: issue comment, PR body, handoff, or 'none'." }
+          }
+        }
+      }
+    },
     "scope": {
       "type": "object",
       "required": ["kind", "target"],
