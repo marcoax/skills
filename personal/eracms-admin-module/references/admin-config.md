@@ -49,9 +49,9 @@ Add `'showMedia'`, `'showSeo'`, `'showBlock'` only when the panel is actually wa
 ## Traps
 
 **A column `type` must have a case in `App\eraCms\Admin\Dictionary\ListFieldType`.** An unknown type
-raises `UnknownListFieldTypeException` at render time — it does not fall back to the raw value — and
-`ListFieldTypeComplianceTest` goes red. Adding a type means adding the case and pointing
-`component()` at its `AdminList*Component`; never build a component class name from the config string.
+raises `UnknownListFieldTypeException` when the list data is built — it does not fall back to the raw
+value — and `ListFieldTypeComplianceTest` goes red. Adding a type means adding the case and its branch
+in `AdminListCellProjection`.
 
 **Export is the `export` action plus a non-empty `field_exportable`.** `export_csv` is the legacy key
 and must not be used. The same fields and permission govern CSV and XLSX.

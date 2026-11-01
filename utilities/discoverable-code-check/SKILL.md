@@ -2,9 +2,9 @@
 name: discoverable-code-check
 description: >
   Checkpoint di discoverability sul codice appena scritto: verifica che ogni simbolo nuovo sia
-  raggiungibile con una sola ricerca testuale. Si invoca a mano a implementazione finita, prima
+  raggiungibile con una sola ricerca testuale. Si invoca a implementazione finita, prima
   della code review. Non usarla mentre scrivi il codice, e non usarla come review di correttezza,
-  performance o sicurezza — per quelle ci sono code-review, optimistic-code-review e
+  performance o sicurezza — per quelle ci sono code-review, advanced-code-review e
   security-review.
 ---
 

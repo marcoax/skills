@@ -11,7 +11,7 @@ Section order: attributes → `use` → class → traits → properties → `cas
 ```php
 #[UseFactory(EventFactory::class)]
 #[UseEloquentBuilder(EventBuilder::class)]   // or EraCmsBuilder::class when there is no custom builder
-class Event extends Model
+class Event extends Model implements HasFieldSpec
 {
     use HasFactory;
 
@@ -40,6 +40,10 @@ The value objects live in `app/eraCms/Tools/ValueObject/Form/` — read the cons
 need. `.ai/rules/admin.md` lists the ones in active use.
 
 ## Traps
+
+**Implement `HasFieldSpec`** (`App\eraCms\Admin\Contracts\HasFieldSpec`), or `PageMetaContent`, which
+extends it, for a public page. The admin resolves section models through `getAdminModelFromString()`,
+which throws `InvalidArgumentException` for a model that declares no field spec.
 
 **`ImagePresenter` only resolves the `imageMedia` relation or a column named literally `image`.**
 Name the column `image` if you use the trait (Team, Course, Links). If the domain wants `logo` or

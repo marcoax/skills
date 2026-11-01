@@ -20,7 +20,7 @@ I namespace `Domain/<Entity>/` fanno già il lavoro. Dei 32 nomi duplicati che r
 sono legittimi: `Item`/`Index` ×4 sono Blade component vincolati dal path,
 `HtmlMenu`/`HtmlSocial`/`NavigationMenu` sono coppie Facade↔implementazione, i `*Controller` ×2-3
 sono i tre ingressi Api/Website/Admin. Genuinamente ambigui: `Features` (Tools vs Domain/Store),
-`ProductResource` (Resources vs Domain/Product/Resources), `HtmlHelper.class.php`.
+`ProductResource` (Resources vs Domain/Product/Resources).
 
 Per confronto, il monorepo da 700k righe su cui è nata la regola "3 parole" stava al 61% a una
 parola. eraCms è due ordini di grandezza più piccolo e la regola non si applica.
