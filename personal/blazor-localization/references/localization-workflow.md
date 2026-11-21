@@ -1,14 +1,6 @@
-# Localizzazione Razor - Workflow Completo
+# Localizzazione Razor - Dettagli di riferimento
 
-## Comando
-`Localizza BlazorWCSWebUI/[path/file.razor]`
-
-## 0. Target Selection
-
-**File**: `Localizza path/file.razor` → procedi con step 1
-**Folder**: `Localizza path/folder/` → elenca i `.razor` ricorsivamente, mostra selezione, itera sui file scelti
-
----
+Procedura e ordine dei passi stanno in [SKILL.md](../SKILL.md); qui solo i dettagli di lookup.
 
 ## Convenzione Path RESX
 
@@ -65,7 +57,7 @@ Quando una risorsa esistente viene spostata:
 5. Aggiornare il path nel progress.
 6. Segnalare che serve arrestare l'app e fare `dotnet clean` prima del successivo avvio: uno spostamento può conservare un timestamp precedente e lasciare `.resources` incrementali obsoleti.
 
-La skill non esegue la build, ma deve riportare esplicitamente questa istruzione nel riepilogo di una migrazione.
+La build di fine lavoro (SKILL.md §10) non basta a eliminare le `.resources` obsolete: riporta esplicitamente questa istruzione nel riepilogo di una migrazione.
 
 ---
 
@@ -77,7 +69,9 @@ La skill non esegue la build, ma deve riportare esplicitamente questa istruzione
 
 **Escludere**: `@commonLabels["..."]`, URL, CSS, date format (`dd/MM/yyyy`), `"true/false/null"`
 
-### ⚠️ Chiavi fantasma — `localizer["<testo italiano>"]`
+### Chiavi fantasma
+
+⚠️ `localizer["<testo italiano>"]`
 
 **Non escludere `@localizer["..."]` a scatola chiusa.** Se la chiave è *testo italiano*
 (`localizer["Codice"]`, `localizer["Conferma dismissione"]`) sono due problemi in uno:
@@ -98,8 +92,7 @@ grep -o 'localizer\["[^"]*"\]' File.razor | grep -E 'localizer\["[^"]*(à|è|é|
 Euristica: chiave con **spazi** o **accenti** → è testo, non una chiave. Rinominare secondo i prefissi
 e aggiungere la voce al RESX.
 
-Caso reale: `DismettiArticolo.razor` ne aveva **11** (`Codice`, `Descrizione1`, `Componente`,
-`Conferma dismissione`, `BtnEditPopup`…), sopravvissute a una localizzazione precedente.
+Le chiavi fantasma sopravvivono alle localizzazioni precedenti: cercale anche nei file già localizzati.
 
 ---
 
@@ -115,34 +108,6 @@ IT→EN, PascalCase, max 100 char
 | Msg* | Messaggi |
 | Title* | Titoli |
 | Col* | Colonne |
-
----
-
-## Controllo Duplicati (ordine)
-
-1. Valore esiste in CommonLabels → riusa `commonLabels["Key"]`
-2. Valore esiste in page-specific → riusa `localizer["Key"]`
-3. Chiave esiste (valore diverso) → suffisso (Key2, Key3...)
-4. Nessuna corrispondenza → chiedi utente
-
----
-
-## Interazione Utente
-
-**Mostrare tabella**:
-```
-| # | Stringa | Chiave | Riga |
-```
-
-**Chiedere modalità**:
-- [1] Tutte insieme
-- [2] Una alla volta
-- [3] Seleziona gruppo
-
-**Per ogni stringa**:
-- [1] CommonLabels
-- [2] Page-specific
-- [3] Skip
 
 ---
 
@@ -186,18 +151,7 @@ Template: copiare `Resources/Resources.CommonLabels.it.resx`, svuotare `<data>`,
 
 ---
 
-## Validazione
-
-- [ ] Sintassi razor/XML corretta
-- [ ] Tutte stringhe sostituite
-- [ ] @using/@inject presenti
-- [ ] No stringhe IT rimaste (`grep à è é ì ò ù`)
-- [ ] Nessuna chiave fantasma: nessun `localizer["..."]` con spazi o accenti
-- [ ] **Allineamento chiavi↔RESX in entrambe le direzioni** (vedi sotto)
-- [ ] Nessun RESX appiattito/ibrido duplicato dopo una migrazione
-- [ ] Path riportato correttamente in `progress/localization-components_progress.md`
-
-### Allineamento bidirezionale
+## Allineamento bidirezionale
 
 Non basta «ogni chiave esiste nel RESX». Servono **due** confronti, per due difetti diversi:
 
@@ -206,19 +160,9 @@ Non basta «ogni chiave esiste nel RESX». Servono **due** confronti, per due di
 | usata → RESX | chiave senza voce | a runtime esce **la chiave** al posto del testo |
 | RESX → usata | voce senza chiave | chiave morta, residuo di rinomine o copia-incolla |
 
-```bash
-R=Resources/Components/<path>/<Nome>.it.resx
-Z=<path>/<Nome>.razor
+Entrambi i confronti li fa `scripts/verifica-chiavi.ps1` (comando in SKILL.md, punto 9): prima direzione `KO`, seconda `AVVISO`. Ricava il RESX dalla convenzione di path; se il componente usa il localizer di un'altra classe (es. `SinotticoTabella` → `IStringLocalizer<Sinottico>`) lo segnala e serve `-Resx`.
 
-grep -o 'data name="[^"]*"' "$R" | sed 's/data name="//;s/"//' \
-  | grep -v 'Name1\|Color1\|Bitmap1\|Icon1' | sort > /tmp/resx.txt
-grep -o 'localizer\["[^"]*"\]' "$Z" | sed 's/localizer\["//;s/"\]//' | sort -u > /tmp/used.txt
-
-echo "usate senza voce:"; comm -13 /tmp/resx.txt /tmp/used.txt
-echo "voci non usate:";   comm -23 /tmp/resx.txt /tmp/used.txt
-```
-
-Entrambe le liste vuote = allineato. Da rifare **dopo ogni rinomina di chiavi**: è lì che si creano
+Nessun `KO` = allineato. Da rifare **dopo ogni rinomina di chiavi**: è lì che si creano
 gli orfani.
 
 ⚠️ Vale anche per le **classi-ponte** dei messaggi di validazione
@@ -229,7 +173,7 @@ voce mancante al compilatore, e a runtime il messaggio di errore esce **vuoto**.
 
 ## Localizzazione DTO (DataAnnotations)
 
-**Riferimento funzionante: commit `9152178` "localizza dto"** (ArticoloCreateDto + ArticoloCreateMessages.resx/.cs + RequiredIfAttribute).
+**Riferimento funzionante: commit `069a57b` "Localizzazione messaggi validazione dto"** (ArticoloCreateDto + ArticoloCreateMessages.resx/.cs + RequiredIfAttribute).
 
 Gli `ErrorMessage` degli attributi built-in (`[Required]`, `[StringLength]`, `[Range]`) devono essere costanti compile-time → `IStringLocalizer` NON è utilizzabile. Il pattern è `ErrorMessageResourceType` + classe ponte statica.
 
@@ -262,5 +206,5 @@ public static class ArticoloCreateMessages
 - Chiavi in inglese, PascalCase, prefisso `Err` (stessa convenzione della sezione Generazione Chiavi)
 - Usare sempre `nameof(...)` per il resource name → errori di battitura rilevati a compile-time
 - Placeholder `{0}` (nome campo) e `{1}`/`{2}` (parametri attributo, es. max di StringLength) vengono formattati da `FormatErrorMessage` → preferire `"Il codice non può superare {1} caratteri"` a valori duplicati nel testo
-- **Attributi custom** (`ValidationAttribute`): costruire il messaggio con `FormatErrorMessage(validationContext.DisplayName)`, MAI leggendo `ErrorMessage` direttamente — altrimenti la coppia resource viene ignorata (fix fatto in `RequiredIfAttribute`)
+- **Attributi custom** (`ValidationAttribute`): costruire il messaggio con `FormatErrorMessage(validationContext.DisplayName)`, MAI leggendo `ErrorMessage` direttamente — altrimenti la coppia resource viene ignorata (esempio corretto: `Helpers/RequiredIfAttribute.cs`)
 - Verifica: harness console con `Validator.TryValidateObject` su DTO vuoto/invalido
