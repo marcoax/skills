@@ -82,6 +82,8 @@ Skills under `personal/` are tied to specific stacks or projects (PHP/Laravel, L
 
 ## Local development
 
+To sync selected personal skills from their source repositories, see [Sync from project repositories](personal/README.md#sync-from-project-repositories).
+
 To inspect or modify a skill:
 
 1. open its directory (e.g. `review/react-review/`)

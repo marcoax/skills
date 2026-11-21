@@ -3,38 +3,23 @@ name: blazor-localization
 description: Localizza file Razor sostituendo stringhe italiane con riferimenti a risorse .resx. Use when processing Italian text in Razor components.
 user-invocable: true
 argument-hint: "[path-to-file-or-folder]"
+model: sonnet
 ---
 
 # Blazor Localizza
 
 Localizza file Razor sostituendo stringhe italiane con riferimenti a risorse .resx.
 
-## ⚠️ Controllo Modello
-
-**Modello consigliato: Sonnet**
-
-Prima di iniziare, verificare il modello in uso. Se NON è Sonnet, mostrare:
-
-> "⚠️ **Attenzione**: stai usando il modello [NOME_MODELLO].
-> Per questa skill è consigliato **Sonnet** (miglior rapporto qualità/costo per task di localizzazione).
->
-> - Haiku: rischio errori sintassi XML/Razor
-> - Opus: funziona ma costo eccessivo per task ripetitivo
->
-> Vuoi continuare?"
-> - [1] **Continua** con modello attuale
-> - [2] **Interrompi** - cambierò modello a Sonnet
-
 ## Uso
 
 **Singolo file:**
 ```
-/blazor-localizza BlazorWCSWebUI/Pages/MyPage.razor
+/blazor-localization BlazorWCSWebUI/Pages/MyPage.razor
 ```
 
 **Cartella intera:**
 ```
-/blazor-localizza BlazorWCSWebUI/Components/Gestione/
+/blazor-localization BlazorWCSWebUI/Components/Gestione/
 ```
 
 ## Modalità Cartella
@@ -68,7 +53,7 @@ Per ogni file nella lista:
 3. **Attendere revisione utente**:
    > "Controlla le modifiche. Quando pronto, conferma per passare al file successivo."
    > - [1] **Confermo, procedi** al prossimo file
-   > - [2] **Stop** - interrompi qui (riprendi dopo con `/blazor-localizza`)
+   > - [2] **Stop** - interrompi qui (riprendi dopo con `/blazor-localization`)
    > - [3] **Annulla ultimo** - ripristina file e riprova
 
 4. **Ripetere** per ogni file fino al completamento o stop utente
@@ -90,28 +75,25 @@ Determina il file RESX mantenendo sotto `Resources/` la stessa struttura di cart
 
 Individua le stringhe italiane da localizzare. Pattern da cercare ed esclusioni → vedi [reference](references/localization-workflow.md#rilevamento-stringhe-it).
 
-⚠️ **Non escludere `@localizer["..."]` a scatola chiusa.** Se la chiave è testo italiano
-(`localizer["Codice"]`) è una **chiave fantasma**: viola IT→EN e quasi sempre la voce nel RESX non
-esiste. Sembra funzionare perché `IStringLocalizer` restituisce la chiave quando manca — build verde,
-pagina corretta a schermo, nessun segnale. Euristica: chiave con spazi o accenti → è testo.
+Includi le **chiavi fantasma** (`localizer["<testo italiano>"]`), anche nei file già localizzati → vedi [reference](references/localization-workflow.md#chiavi-fantasma).
 
 ### 3. Generazione Chiavi
 
 IT→EN, PascalCase, max 100 char. Tabella prefissi (Btn/Err/Lbl/Msg/Title/Col) → vedi [reference](references/localization-workflow.md#generazione-chiavi).
-
-La regola vale **sempre**, anche aggiungendo una sola chiave a mano senza invocare questa skill.
 
 ### 4. Controllo Duplicati (ordine)
 
 1. Valore esiste in CommonLabels → riusa `commonLabels["Key"]`
 2. Valore esiste in page-specific → riusa `localizer["Key"]`
 3. Chiave esiste (valore diverso) → suffisso (Key2, Key3...)
-4. Nessuna corrispondenza → chiedi utente
+4. Nessuna corrispondenza → nuova chiave, nel RESX scelto allo STEP B
 
 **Stringhe duplicate tra file diversi**: se la stessa stringa appare in più file (es. "Panoramica completa delle operazioni..."), segnalare all'utente:
 > "Questa stringa appare in N file. Vuoi aggiungerla a CommonLabels per riuso?"
 
 ### 5. Interazione Utente
+
+Se la richiesta autorizza già a procedere (es. «sistema tutte», «localizza le stringhe» con file indicato), salta gli STEP B e C: tutte le nuove chiavi nel RESX di pagina, riuso di CommonLabels solo per valori già presenti (punto 4), e dichiaralo nel riepilogo. Altrimenti segui gli STEP A-C.
 
 **STEP A - Mostrare tabella stringhe trovate** (segnalare eventuali typo nelle stringhe rilevate con ⚠️ e proporre correzione nel valore RESX):
 
@@ -122,7 +104,7 @@ La regola vale **sempre**, anche aggiungendo una sola chiave a mano senza invoca
 | 2 | "Errore di connessione" | ErrConnection | 78 |
 ```
 
-**STEP B - OBBLIGATORIO: Chiedere destinazione CommonLabels**:
+**STEP B - Chiedere destinazione CommonLabels**:
 
 > "Quali stringhe vuoi in **CommonLabels** (riusabili in tutto il progetto)?
 > Indica i numeri separati da virgola, oppure 'nessuna'.
@@ -148,55 +130,34 @@ Aggiungi `@using`/`@inject` se assenti → vedi [reference](references/localizat
 
 Crea il RESX se non esiste: copiare `Resources/Resources.CommonLabels.it.resx`, svuotare i `<data>` applicativi e aggiungere le chiavi. Template → vedi [reference](references/localization-workflow.md#nuovo-resx).
 
-### 9. Validazione
+### 9. Validazione (ogni file)
 
-- [ ] Sintassi razor/XML corretta
-- [ ] Tutte stringhe sostituite
-- [ ] @using/@inject presenti
-- [ ] No stringhe IT rimaste (`grep àèéìòù`)
-- [ ] Nessuna chiave fantasma: nessun `localizer["..."]` con spazi o accenti
-- [ ] Allineamento chiavi↔RESX **in entrambe le direzioni** (chiavi senza voce *e* voci senza chiave) → [comando](references/localization-workflow.md#allineamento-bidirezionale)
+Lancia lo script, da rifare dopo ogni rinomina di chiavi (file o cartella):
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File .claude/skills/blazor-localization/scripts/verifica-chiavi.ps1 <file.razor|cartella>
+```
+
+Copre allineamento chiavi↔RESX in entrambe le direzioni, chiavi fantasma, voci duplicate o vuote, RESX mancante, CommonLabels e `.razor.cs`. Exit 1 = almeno un `KO` da correggere; gli `AVVISO` (voci non usate, righe con accenti) vanno valutati. Se il localizer è di un'altra classe (vedi [reference](references/localization-workflow.md#allineamento-bidirezionale)) passa `-Resx <percorso>`. Niente python: sulla macchina non c'è.
+
+Restano a mano:
+- [ ] Stringhe IT residue **senza accenti** (lo script vede solo righe con lettere accentate)
 - [ ] Nessun vecchio RESX appiattito rimasto dopo una migrazione di path
 
-### 10. Verifica Codice
+### 10. Build e riepilogo (fine lavoro)
 
-**NON eseguire `dotnet build`** - solo controllo correttezza codice:
+**Build una sola volta**, dopo l'ultimo file: `dotnet build BlazorWCSWebUI/BlazorWCSWebUI.csproj`. Rileva `@using`/`@inject` mancanti, sintassi Razor, RESX malformati e i `nameof` dei DTO (10-bis); non rileva le chiavi mancanti, per quelle serve l'allineamento del punto 9.
+Se l'app è in esecuzione il build termina con `MSB3027`/`MSB3021` sull'exe: è il lock del processo, non un errore di compilazione. Rilancia con `-p:OutputPath=obj\tmpbuild\`, leggi lì il conteggio errori, poi cancella la cartella temporanea.
 
-1. **Verificare sintassi Razor**:
-   - Direttive `@using`/`@inject` presenti e corrette
-   - Parentesi bilanciate in `@Localizer["..."]`
-   - Nessun carattere escapato errato
-
-2. **Verificare RESX**:
-   - XML ben formato
-   - Tutti i `<data name="...">` hanno `<value>`
-   - Nessuna chiave duplicata
-   - Allineamento bidirezionale con il `.razor` — da rifare **dopo ogni rinomina**, è lì che nascono gli orfani
-
-3. **Controllo stringhe IT rimaste**:
-   - Grep per `àèéìòù` nel file modificato
-   - Segnalare eventuali stringhe non sostituite
-
-4. **Riepilogo finale**:
-   - File RESX creati/modificati
-   - Numero stringhe localizzate
-   - Eventuali warning
+**Riepilogo**: file RESX creati/modificati, numero stringhe localizzate, eventuali warning.
 
 ### 10-bis. DTO con DataAnnotations
 
-Se il target è un **DTO/model con DataAnnotations** (non un .razor): gli attributi built-in non supportano `IStringLocalizer` → usare il pattern `ErrorMessageResourceType` + classe ponte statica. Creare SEMPRE la coppia `Resources/[Nome]Messages.resx` (neutro, senza `.it`) + `Resources/[Nome]Messages.cs` (a mano). Dettagli e riferimento (commit `9152178`) → [reference](references/localization-workflow.md#localizzazione-dto-dataannotations).
+Se il target è un **DTO/model con DataAnnotations** (non un .razor): gli attributi built-in non supportano `IStringLocalizer` → usare il pattern `ErrorMessageResourceType` + classe ponte statica. Creare SEMPRE la coppia `Resources/[Nome]Messages.resx` (neutro, senza `.it`) + `Resources/[Nome]Messages.cs` (a mano). Dettagli e riferimento (commit `069a57b`) → [reference](references/localization-workflow.md#localizzazione-dto-dataannotations).
 
-### 11. Aggiornamento Progress
+### 11. Progress
 
-**⚠️ OBBLIGATORIO** - Aggiornare SEMPRE `progress/localization-components_progress.md`:
-
-1. **Marcare task come completato** nella tabella con numero stringhe
-2. **Aggiungere TUTTI i file** modificati/creati alla lista:
-   - File `.razor` localizzati
-   - File `.resx` creati (indicare NUOVO) o modificati
-3. **Indicare numero stringhe** localizzate per ogni file
-
-**NON considerare il task completato finché il file progress non è aggiornato.**
+Se il file è tracciato in `progress/localization-components_progress.md`, aggiornalo: task completato con numero stringhe, file `.razor` localizzati e `.resx` creati (NUOVO) o modificati, path RESX corretto dopo eventuali migrazioni.
 
 ### 12. Auto-apprendimento
 
@@ -209,7 +170,7 @@ Se il target è un **DTO/model con DataAnnotations** (non un .razor): gli attrib
 **Al termine**, mostrare lista miglioramenti proposti:
 
 ```
-## Suggerimenti per migliorare /blazor-localizza
+## Suggerimenti per migliorare /blazor-localization
 
 | # | Tipo | Descrizione |
 |---|------|-------------|

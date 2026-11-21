@@ -35,6 +35,7 @@ These have defaults: state them in the plan instead of asking, unless the user w
 | List order | `orderBy: sort`, `orderType: ASC` |
 | Sidebar | `home: true`, top-bar `show: true`, `action: ['add']` |
 | Template | none (uses `admin.edit` / `admin.view`) |
+| Placeholder Content | off — `placeholder_content` entry in the section's `list.php`, see admin-config.md |
 
 Present a plan with the files to create and modify, the table schema, roles, translatable fields
 and actions.

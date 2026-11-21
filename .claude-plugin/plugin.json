@@ -5,6 +5,8 @@
     "./personal/eracms-admin-module",
     "./personal/md-to-blog-html",
     "./personal/php-tdd-workflow",
+    "./personal/teach-english/add-lesson",
+    "./personal/teach-english/add-recap",
     "./personal/technical-debt-manager-php-laravel",
     "./planning/planning-with-files",
     "./planning/task-spec-creator",
