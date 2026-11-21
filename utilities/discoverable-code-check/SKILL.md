@@ -1,80 +1,79 @@
 ---
 name: discoverable-code-check
 description: >
-  Checkpoint di discoverability sul codice appena scritto: verifica che ogni simbolo nuovo sia
-  raggiungibile con una sola ricerca testuale. Si invoca a implementazione finita, prima
-  della code review. Non usarla mentre scrivi il codice, e non usarla come review di correttezza,
-  performance o sicurezza — per quelle ci sono code-review, advanced-code-review e
-  security-review.
+  Discoverability checkpoint on code just written: checks that every new symbol can be reached
+  with a single text search. Invoke once implementation is finished, before code review. Do not
+  use it while writing the code, and do not use it as a correctness, performance or security
+  review — code-review, advanced-code-review and security-review cover those.
 ---
 
 # Discoverability check
 
-Un agente trova il codice cercando stringhe e leggendo la finestra attorno al match: niente hover,
-niente jump-to-definition, niente memoria tra sessioni. Ogni identificatore è una query, e ogni
-ricerca che manca il bersaglio costa letture sprecate. Questo controllo verifica che il codice
-appena scritto risponda in una ricerca sola.
+An agent finds code by searching for strings and reading the window around the match: no hover,
+no jump-to-definition, no memory between sessions. Every identifier is a query, and every search
+that misses its target costs wasted reads. This check verifies that the code just written answers
+in a single search.
 
-## Le convenzioni vincono
+## Conventions win
 
-Le convenzioni di Laravel e quelle del progetto hanno la precedenza su ogni rilievo di questa
-skill. Quando un nome è imposto, **il nome resta e si documenta**:
+Laravel and project conventions take precedence over every finding of this skill. When a name is
+imposed, **the name stays and gets documented**:
 
-- hook del framework — `render`, `handle`, `boot`, `register`, `index`, `show`, `store`, `rules`,
+- framework hooks — `render`, `handle`, `boot`, `register`, `index`, `show`, `store`, `rules`,
   `authorize`, `toArray`, `toMail`, `via`
-- classi risolte dal path — Blade component (`Website/News/Index.php` ↔ `<x-website.news.index>`),
-  controller paralleli Api/Website/Admin, migration, Facade accanto alla loro implementazione
-- metodi di contratto implementati da molte classi — `getFieldSpec`, i builder, i cast
+- classes resolved by path — Blade components (`Website/News/Index.php` ↔ `<x-website.news.index>`),
+  parallel Api/Website/Admin controllers, migrations, Facades next to their implementation
+- contract methods implemented by many classes — `getFieldSpec`, the builders, the casts
 
-Non proporre mai una rinomina che rompa la risoluzione del framework o che spezzi un pattern già
-usato altrove nel repo. In dubbio guarda i sibling e allineati: una collisione di nomi coerente
-con il resto del codice non è un difetto.
+Never propose a rename that breaks framework resolution or splits a pattern already used elsewhere
+in the repo. When in doubt, look at the siblings and align: a name collision consistent with the
+rest of the code is not a defect.
 
-## Ambito
+## Scope
 
-Solo il codice toccato in questo lavoro (`git diff` contro la base del branch). Il debito
-preesistente non è oggetto del controllo — segnalalo solo se il codice nuovo lo peggiora, per
-esempio aggiungendo il quinto `execute()` muto a un gruppo che ne aveva quattro.
+Only the code touched in this work (`git diff` against the branch base). Pre-existing debt is not
+the subject of the check — report it only if the new code makes it worse, for example by adding
+the fifth silent `execute()` to a group that had four.
 
-## I tre controlli
+## The three checks
 
-**1. La doc-line dove atterra la ricerca.** Ogni metodo pubblico e ogni classe nuovi vogliono una
-riga di PHPDoc con due lavori: il vincolo che la firma non può esprimere (unità di misura,
-timezone, ownership, ordinamento, side effect, quale delle due date) e la frase in parole piane
-che qualcuno cercherebbe. I nomi camelCase sono invisibili alle ricerche in linguaggio naturale:
-`getFieldSpec` non matcha una grep per "field spec", `SessionExpiryChecker` non matcha "session
-expired". La riga sopra la definizione è tutto il messaggio che arriva a chi cerca. Non è un
-commento che rispiega il codice: se la firma già dice tutto e il nome è cercabile, salta.
+**1. The doc line where the search lands.** Every new public method and class needs one PHPDoc
+line with two jobs: the constraint the signature cannot express (unit of measure, timezone,
+ownership, ordering, side effect, which of the two dates) and the plain-words phrase someone would
+search for. camelCase names are invisible to natural-language searches: `getFieldSpec` does not
+match a grep for "field spec", `SessionExpiryChecker` does not match "session expired". The line
+above the definition is the whole message that reaches the searcher. It is not a comment that
+re-explains the code: if the signature already says everything and the name is searchable, skip it.
 
-**2. Verbi generici senza oggetto.** `execute`, `process`, `calculate`, `handle`, `get`, `run` su
-codice nuovo in `Domain/`, `Tools/`, `Builders/` — dove il nome è libero — vogliono il loro
-oggetto: `calculateShippingCost`, non `calculate`. Qualifica quanto serve a essere unico, poi
-fermati; il resto va nella doc-line. Se il verbo nudo è imposto da un'interfaccia o da Laravel,
-vale la sezione precedente: resta, e prende la doc-line.
+**2. Generic verbs without an object.** `execute`, `process`, `calculate`, `handle`, `get`, `run`
+on new code in `Domain/`, `Tools/`, `Builders/` — where the name is free — need their object:
+`calculateShippingCost`, not `calculate`. Qualify as much as needed to be unique, then stop; the
+rest goes in the doc line. If the bare verb is imposed by an interface or by Laravel, the previous
+section applies: it stays, and gets the doc line.
 
-**3. Un solo sito di definizione.** Se questo lavoro ha spostato o duplicato codice, verifica che
-sia sparito dall'origine nello stesso commit. Un helper copiato in due posti fa atterrare ogni
-ricerca futura su entrambi, e uno dei due invecchia in silenzio. Stessa cosa per i nomi diventati
-bugiardi: se il comportamento è cambiato, il nome cambia adesso.
+**3. A single definition site.** If this work moved or duplicated code, verify it disappeared from
+the origin in the same commit. A helper copied to two places makes every future search land on
+both, and one of them ages silently. Same for names that became lies: if the behavior changed, the
+name changes now.
 
 ## Output
 
-Elenca i rilievi come `file:riga — cosa manca` in ordine di costo per chi cercherà, distinguendo
-quelli che ricadono sotto "le convenzioni vincono" (da documentare) da quelli dove il nome si può
-migliorare. Se non c'è niente, dillo in una riga. Poi chiedi quali applicare prima di modificare
-i file: questo è un checkpoint, non un refactor automatico.
+List findings as `file:line — what is missing`, ordered by cost to whoever will search,
+separating those that fall under "Conventions win" (to document) from those where the name can be
+improved. If there is nothing, say so in one line. Then ask which to apply before editing the
+files: this is a checkpoint, not an automatic refactor.
 
-Chiudi con le sei domande di verifica:
+Close with the six verification questions:
 
-1. Una sola ricerca per ogni nome nuovo basta a trovarne l'implementazione?
-2. I verbi generici nuovi hanno il loro oggetto, o una convenzione che li giustifica?
-3. La cosa che il chiamante deve sapere ma la firma non dice è scritta alla definizione?
-4. Le stringhe di log/errore nuove esistono verbatim nel sorgente, senza interpolazione iniziale?
-5. Qualcosa ha cambiato comportamento senza cambiare nome?
-6. Il codice spostato è sparito da dove stava?
+1. Is a single search for each new name enough to find its implementation?
+2. Do the new generic verbs have their object, or a convention that justifies them?
+3. Is what the caller must know but the signature does not say written at the definition?
+4. Do the new log/error strings exist verbatim in the source, without leading interpolation?
+5. Did anything change behavior without changing name?
+6. Did moved code disappear from where it was?
 
-## Perché queste tre e non altre venti
+## Why these three and not twenty others
 
-Le regole sono tagliate sulla misura di questo repo, non su un elenco generico:
-`reference/eracms-baseline.md`. Rimisura con `reference/measure_discoverability.py` se vuoi
-verificare che valgano ancora.
+The rules are cut to the measure of this repo, not to a generic list:
+`reference/eracms-baseline.md`. Re-measure with `reference/measure_discoverability.py` to verify
+they still hold.
