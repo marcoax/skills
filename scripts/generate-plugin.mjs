@@ -7,7 +7,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const BUCKETS = ["planning", "review", "skill-management", "utilities", "personal"];
+const BUCKETS = ["planning", "review", "skill-management", "utilities", "personal", "personal/teach-english"];
 const EXCLUDE = new Set(["deprecated", "node_modules", ".git"]);
 const PLUGIN_NAME = "marcoax-skills";
 
